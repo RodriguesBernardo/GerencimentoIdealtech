@@ -13,6 +13,7 @@ class UserSeeder extends Seeder
         // Criar usuário admin
         User::create([
             'name' => 'Administrador',
+            'email' => 'admin@idealtech.com',
             'password' => Hash::make('senha123'),
             'is_admin' => true,
             'telefone' => '(11) 99999-9999',
@@ -22,6 +23,7 @@ class UserSeeder extends Seeder
         // Criar usuário comum
         User::create([
             'name' => 'Funcionário Comum',
+            'email' => 'funcionario@idealtech.com',
             'password' => Hash::make('senha123'),
             'is_admin' => false,
             'telefone' => '(11) 88888-8888',
@@ -31,6 +33,7 @@ class UserSeeder extends Seeder
         // Criar mais alguns usuários de exemplo
         User::create([
             'name' => 'João Técnico',
+            'email' => 'joao@idealtech.com',
             'password' => Hash::make('senha123'),
             'is_admin' => false,
             'telefone' => '(11) 77777-7777',
@@ -40,6 +43,7 @@ class UserSeeder extends Seeder
         // Usuário sem permissão para ver valores
         User::create([
             'name' => 'Estagiário',
+            'email' => 'estagiario@idealtech.com',
             'password' => Hash::make('senha123'),
             'is_admin' => false,
             'telefone' => '(11) 66666-6666',
