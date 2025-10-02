@@ -21,7 +21,6 @@
                         <th>Nome</th>
                         <th>CPF/CNPJ</th>
                         <th>WhatsApp</th>
-                        <th>E-mail</th>
                         <th>Total Serviços</th>
                         <th>Ações</th>
                     </tr>
@@ -32,7 +31,6 @@
                         <td>{{ $cliente->nome }}</td>
                         <td>{{ $cliente->cpf_cnpj ?? '-' }}</td>
                         <td>{{ $cliente->whatsapp ?? '-' }}</td>
-                        <td>{{ $cliente->email ?? '-' }}</td>
                         <td>
                             <span class="badge bg-primary">{{ $cliente->servicos_count ?? 0 }}</span>
                         </td>

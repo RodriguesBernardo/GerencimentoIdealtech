@@ -13,7 +13,6 @@ return new class extends Migration
             $table->string('nome');
             $table->string('cpf_cnpj')->nullable();
             $table->string('whatsapp')->nullable();
-            $table->string('email')->nullable();
             $table->text('endereco')->nullable();
             $table->text('observacoes')->nullable();
             $table->timestamps();
