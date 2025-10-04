@@ -23,13 +23,15 @@ Route::middleware(['auth'])->group(function () {
     
     // Clientes
     Route::resource('clientes', ClienteController::class);
+    Route::get('/clientes/search-ajax', [ClienteController::class, 'searchAjax'])->name('clientes.search-ajax');
     
     // Serviços
     Route::resource('servicos', ServicoController::class);
+    Route::post('/servicos/{servico}/update-payment-status', [ServicoController::class, 'updatePaymentStatus'])
+         ->name('servicos.update-payment-status');
     
     // Admin routes
     Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
-        // Adicione esta rota:
         Route::get('/dashboard', [DashboardController::class, 'adminDashboard'])->name('dashboard');
         Route::resource('usuarios', UsuarioController::class);
         Route::get('/relatorios', [DashboardController::class, 'relatorios'])->name('relatorios');

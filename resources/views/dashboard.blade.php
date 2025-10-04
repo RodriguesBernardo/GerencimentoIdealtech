@@ -64,20 +64,8 @@
             <div class="card-body">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <h5 class="card-title text-muted mb-2">
-                            @if(auth()->user()->podeVerValoresCompletos())
-                                Valor Total Mês
-                            @else
-                                Serviços Realizados
-                            @endif
-                        </h5>
-                        <h3 class="mb-0">
-                            @if(auth()->user()->podeVerValoresCompletos())
-                                R$ {{ number_format($valorTotalMes, 2, ',', '.') }}
-                            @else
-                                {{ $servicosMes }}
-                            @endif
-                        </h3>
+                        <h5 class="card-title text-muted mb-2">Valor Total Mês</h5>
+                        <h3 class="mb-0">R$ {{ number_format($valorTotalMes, 2, ',', '.') }}</h3>
                     </div>
                     <div class="flex-shrink-0">
                         <div class="bg-warning bg-gradient text-white rounded-circle p-3">
@@ -124,14 +112,15 @@
                             @foreach($servicosRecentes as $servico)
                             <tr>
                                 <td>{{ $servico->cliente->nome }}</td>
-                                <td>{{ Str::limit($servico->descricao_servico, 30) }}</td>
+                                <td>{{ Str::limit($servico->descricao, 30) }}</td>
                                 <td>
-                                    <span class="badge 
-                                        @if($servico->status == 'Pago') badge-pago
-                                        @elseif($servico->status == 'Atrasado') badge-atrasado
-                                        @else badge-pendente @endif">
-                                        {{ $servico->status }}
-                                    </span>
+                                    @if($servico->status_pagamento == 'pago')
+                                        <span class="status-pagamento status-pago status-pagamento-sm">PAGO</span>
+                                    @elseif($servico->status_pagamento == 'pendente')
+                                        <span class="status-pagamento status-pendente status-pagamento-sm">PENDENTE</span>
+                                    @else
+                                        <span class="status-pagamento status-nao-pago status-pagamento-sm">NÃO PAGO</span>
+                                    @endif
                                 </td>
                                 <td>{{ $servico->created_at->format('d/m/Y') }}</td>
                             </tr>
@@ -152,15 +141,17 @@
         const statusChart = new Chart(statusCtx, {
             type: 'doughnut',
             data: {
-                labels: {!! json_encode($servicosPorStatus->pluck('status')) !!},
+                labels: ['Pago', 'Pendente', 'Não Pago'],
                 datasets: [{
-                    data: {!! json_encode($servicosPorStatus->pluck('total')) !!},
+                    data: [
+                        {{ $servicosPorStatus['pago'] ?? 0 }},
+                        {{ $servicosPorStatus['pendente'] ?? 0 }},
+                        {{ $servicosPorStatus['nao_pago'] ?? 0 }}
+                    ],
                     backgroundColor: [
-                        '#28a745', // Pago - Verde
-                        '#ffc107', // Pendente - Amarelo
-                        '#dc3545', // Atrasado - Vermelho
-                        '#17a2b8', // Outros - Azul
-                        '#6c757d'  // Outros - Cinza
+                        '#10B981', // Pago - Verde
+                        '#F59E0B', // Pendente - Amarelo
+                        '#EF4444'  // Não Pago - Vermelho
                     ]
                 }]
             },

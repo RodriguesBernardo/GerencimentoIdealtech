@@ -12,8 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('nome');
             $table->string('cpf_cnpj')->nullable();
-            $table->string('whatsapp')->nullable();
-            $table->text('endereco')->nullable();
+            $table->string('celular')->nullable();
             $table->text('observacoes')->nullable();
             $table->timestamps();
             $table->softDeletes();

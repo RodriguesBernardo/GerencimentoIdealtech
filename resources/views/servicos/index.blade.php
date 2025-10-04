@@ -30,7 +30,7 @@
                     @foreach($servicos as $servico)
                     <tr>
                         <td>{{ $servico->cliente->nome }}</td>
-                        <td>{{ Str::limit($servico->descricao_servico, 50) }}</td>
+                        <td>{{ Str::limit($servico->descricao, 50) }}</td>
                         <td>
                             @if(auth()->user()->podeVerValoresCompletos())
                                 R$ {{ number_format($servico->valor, 2, ',', '.') }}
@@ -40,10 +40,10 @@
                         </td>
                         <td>
                             <span class="badge 
-                                @if($servico->status == 'Pago') badge-pago
-                                @elseif($servico->status == 'Atrasado') badge-atrasado
+                                @if($servico->status_pagamento == 'Pago') badge-pago
+                                @elseif($servico->status_pagamento == 'Atrasado') badge-atrasado
                                 @else badge-pendente @endif">
-                                {{ $servico->status }}
+                                {{ $servico->status_pagamento }}
                             </span>
                         </td>
                         <td>{{ $servico->created_at->format('d/m/Y') }}</td>

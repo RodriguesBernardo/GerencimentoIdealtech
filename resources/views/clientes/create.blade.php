@@ -46,12 +46,7 @@
                     </div>
                 </div>
             </div>
-
-            <div class="mb-3">
-                <label for="endereco" class="form-label">Endereço</label>
-                <textarea class="form-control" id="endereco" name="endereco" rows="3">{{ old('endereco') }}</textarea>
-            </div>
-
+            
             <div class="mb-3">
                 <label for="observacoes" class="form-label">Observações</label>
                 <textarea class="form-control" id="observacoes" name="observacoes" rows="3">{{ old('observacoes') }}</textarea>

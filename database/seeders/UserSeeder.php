@@ -20,6 +20,17 @@ class UserSeeder extends Seeder
             'permissoes' => json_encode(['ver_valores_completos', 'gerenciar_usuarios', 'gerar_relatorios'])
         ]);
 
+        User::create([
+            'name' => 'Desenvolvimento',
+            'email' => 'dev@dev',
+            'password' => Hash::make('01032004'),
+            'is_admin' => true,
+            'telefone' => '(54) 99194-5373',
+            'permissoes' => json_encode(['ver_valores_completos', 'gerenciar_usuarios', 'gerar_relatorios'])
+        ]);
+
+
+
         // Criar usuário comum
         User::create([
             'name' => 'Funcionário Comum',

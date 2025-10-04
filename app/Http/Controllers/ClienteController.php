@@ -7,9 +7,17 @@ use Illuminate\Http\Request;
 
 class ClienteController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $clientes = Cliente::withCount('servicos')->orderBy('nome')->paginate(10);
+        $search = $request->get('search');
+        
+        $clientes = Cliente::withCount('servicos')
+            ->when($search, function($query) use ($search) {
+                return $query->where('nome', 'like', '%' . $search . '%');
+            })
+            ->orderBy('nome')
+            ->paginate(10);
+
         return view('clientes.index', compact('clientes'));
     }
 
@@ -23,8 +31,7 @@ class ClienteController extends Controller
         $request->validate([
             'nome' => 'required|string|max:255',
             'cpf_cnpj' => 'nullable|string|max:20',
-            'whatsapp' => 'nullable|string|max:20',
-            'email' => 'nullable|email',
+            'celular' => 'nullable|string|max:20',
             'endereco' => 'nullable|string',
             'observacoes' => 'nullable|string'
         ]);
@@ -37,7 +44,10 @@ class ClienteController extends Controller
 
     public function show(Cliente $cliente)
     {
-        $servicos = $cliente->servicos()->orderBy('created_at', 'desc')->get();
+        $servicos = $cliente->servicos()
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+            
         return view('clientes.show', compact('cliente', 'servicos'));
     }
 
@@ -48,24 +58,29 @@ class ClienteController extends Controller
 
     public function update(Request $request, Cliente $cliente)
     {
-        $request->validate([
+        $validated = $request->validate([
             'nome' => 'required|string|max:255',
             'cpf_cnpj' => 'nullable|string|max:20',
-            'whatsapp' => 'nullable|string|max:20',
-            'email' => 'nullable|email',
+            'celular' => 'nullable|string|max:20',
             'endereco' => 'nullable|string',
-            'observacoes' => 'nullable|string'
+            'observacoes' => 'nullable|string',
         ]);
 
-        $cliente->update($request->all());
+        $cliente->update($validated);
 
-        return redirect()->route('clientes.index')
+        return redirect()->route('clientes.show', $cliente)
             ->with('success', 'Cliente atualizado com sucesso!');
     }
 
     public function destroy(Cliente $cliente)
     {
+        if ($cliente->servicos()->count() > 0) {
+            return redirect()->route('clientes.index')
+                ->with('error', 'Não é possível excluir o cliente pois existem serviços vinculados a ele.');
+        }
+
         $cliente->delete();
+        
         return redirect()->route('clientes.index')
             ->with('success', 'Cliente excluído com sucesso!');
     }

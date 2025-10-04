@@ -16,23 +16,14 @@ class DashboardController extends Controller
         $totalClientes = Cliente::count();
         $totalServicos = Servico::count();
         $servicosMes = Servico::whereMonth('created_at', now()->month)->count();
+        $valorTotalMes = Servico::whereMonth('created_at', now()->month)->sum('valor');
         
-        // Calcular valores - considerar permissões
-        $usuario = auth()->user();
-        $valorTotalMes = $usuario->podeVerValoresCompletos() 
-            ? Servico::whereMonth('created_at', now()->month)->sum('valor') 
-            : null;
-            
-        $valorPendente = $usuario->podeVerValoresCompletos()
-            ? Servico::where('status', '!=', 'Pago')->sum('valor')
-            : null;
-
-        // Gráfico de serviços por status
-        $servicosPorStatus = Servico::select('status', DB::raw('count(*) as total'))
-            ->groupBy('status')
-            ->get();
-
-        // Serviços recentes
+        $servicosPorStatus = [
+            'pago' => Servico::where('status_pagamento', 'pago')->count(),
+            'pendente' => Servico::where('status_pagamento', 'pendente')->count(),
+            'nao_pago' => Servico::where('status_pagamento', 'nao_pago')->count()
+        ];
+        
         $servicosRecentes = Servico::with('cliente')
             ->orderBy('created_at', 'desc')
             ->take(5)
@@ -40,10 +31,9 @@ class DashboardController extends Controller
 
         return view('dashboard', compact(
             'totalClientes',
-            'totalServicos',
+            'totalServicos', 
             'servicosMes',
             'valorTotalMes',
-            'valorPendente',
             'servicosPorStatus',
             'servicosRecentes'
         ));
