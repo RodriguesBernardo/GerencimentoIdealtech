@@ -15,6 +15,7 @@ return new class extends Migration
             $table->text('descricao');
             $table->date('data_servico');
             $table->enum('status_pagamento', ['pago', 'nao_pago', 'pendente'])->default('pendente');
+            $table->date('pago_at')->nullable();
             $table->decimal('valor', 10, 2)->nullable();
             $table->text('observacao_pagamento')->nullable();
             $table->text('observacoes')->nullable();
