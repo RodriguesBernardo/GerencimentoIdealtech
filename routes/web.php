@@ -19,7 +19,7 @@ Route::get('/', function () {
 });
 
 Route::middleware(['auth'])->group(function () {
-    // Dashboard - deve vir primeiro
+    // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Clientes
@@ -36,11 +36,13 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/parcelas/{parcela}/marcar-pendente', [ParcelaController::class, 'marcarPendente'])->name('parcelas.marcar-pendente');
     Route::put('/parcelas/{parcela}', [ParcelaController::class, 'atualizarStatus'])->name('parcelas.update');
     Route::delete('/parcelas/{parcela}', [ParcelaController::class, 'destroy'])->name('parcelas.destroy');
+});
 
-    // Admin routes
-    Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
-        Route::get('/dashboard', [DashboardController::class, 'adminDashboard'])->name('dashboard');
-        Route::resource('usuarios', UsuarioController::class);
-        Route::get('/relatorios', [DashboardController::class, 'relatorios'])->name('relatorios');
-    });
+// Rotas Admin - Use o novo nome do middleware
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'check.admin'])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'adminDashboard'])->name('dashboard');
+    Route::resource('usuarios', UsuarioController::class);
+    Route::patch('/usuarios/{id}/restore', [UsuarioController::class, 'restore'])->name('usuarios.restore');
+    Route::delete('/usuarios/{id}/force-delete', [UsuarioController::class, 'forceDelete'])->name('usuarios.force-delete');
+    Route::get('/relatorios', [DashboardController::class, 'relatorios'])->name('relatorios');
 });

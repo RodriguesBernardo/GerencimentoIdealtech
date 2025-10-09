@@ -6,18 +6,28 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class UsuarioController extends Controller
 {
+    public function __construct()
+    {
+        /* $this->middleware('check.admin'); */
+    }
+
     public function index()
     {
-        $usuarios = User::orderBy('name')->paginate(10);
+        $usuarios = User::withTrashed()
+            ->orderBy('name')
+            ->paginate(10);
+            
         return view('admin.usuarios.index', compact('usuarios'));
     }
 
     public function create()
     {
-        return view('admin.usuarios.create');
+        $permissoes = $this->getPermissoesOptions();
+        return view('admin.usuarios.create', compact('permissoes'));
     }
 
     public function store(Request $request)
@@ -28,6 +38,7 @@ class UsuarioController extends Controller
             'password' => 'required|min:6|confirmed',
             'is_admin' => 'boolean',
             'permissoes' => 'nullable|array',
+            'permissoes.*' => Rule::in(array_keys($this->getPermissoesOptions())),
             'telefone' => 'nullable|string|max:20'
         ]);
 
@@ -36,7 +47,7 @@ class UsuarioController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'is_admin' => $request->is_admin ?? false,
-            'permissoes' => $request->permissoes,
+            'permissoes' => $request->permissoes ?? [],
             'telefone' => $request->telefone
         ]);
 
@@ -46,7 +57,13 @@ class UsuarioController extends Controller
 
     public function edit(User $usuario)
     {
-        return view('admin.usuarios.edit', compact('usuario'));
+        // Impedir que usuários não admin editem outros usuários
+        if (!$usuario->is_admin && !auth()->user()->is_admin) {
+            abort(403, 'Acesso não autorizado.');
+        }
+
+        $permissoes = $this->getPermissoesOptions();
+        return view('admin.usuarios.edit', compact('usuario', 'permissoes'));
     }
 
     public function update(Request $request, User $usuario)
@@ -57,6 +74,7 @@ class UsuarioController extends Controller
             'password' => 'nullable|min:6|confirmed',
             'is_admin' => 'boolean',
             'permissoes' => 'nullable|array',
+            'permissoes.*' => Rule::in(array_keys($this->getPermissoesOptions())),
             'telefone' => 'nullable|string|max:20'
         ]);
 
@@ -64,7 +82,7 @@ class UsuarioController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'is_admin' => $request->is_admin ?? false,
-            'permissoes' => $request->permissoes,
+            'permissoes' => $request->permissoes ?? [],
             'telefone' => $request->telefone
         ];
 
@@ -90,5 +108,52 @@ class UsuarioController extends Controller
 
         return redirect()->route('admin.usuarios.index')
             ->with('success', 'Usuário excluído com sucesso!');
+    }
+
+    public function restore($id)
+    {
+        $usuario = User::withTrashed()->findOrFail($id);
+        $usuario->restore();
+
+        return redirect()->route('admin.usuarios.index')
+            ->with('success', 'Usuário restaurado com sucesso!');
+    }
+
+    public function forceDelete($id)
+    {
+        $usuario = User::withTrashed()->findOrFail($id);
+
+        // Não permitir excluir permanentemente o próprio usuário
+        if ($usuario->id === auth()->id()) {
+            return redirect()->route('admin.usuarios.index')
+                ->with('error', 'Você não pode excluir permanentemente seu próprio usuário.');
+        }
+
+        $usuario->forceDelete();
+
+        return redirect()->route('admin.usuarios.index')
+            ->with('success', 'Usuário excluído permanentemente com sucesso!');
+    }
+
+    /**
+     * Opções de permissões disponíveis
+     */
+    private function getPermissoesOptions()
+    {
+        return [
+            'clientes.view' => 'Visualizar Clientes',
+            'clientes.create' => 'Criar Clientes',
+            'clientes.edit' => 'Editar Clientes',
+            'clientes.delete' => 'Excluir Clientes',
+            'servicos.view' => 'Visualizar Serviços',
+            'servicos.create' => 'Criar Serviços',
+            'servicos.edit' => 'Editar Serviços',
+            'servicos.delete' => 'Excluir Serviços',
+            'parcelas.view' => 'Visualizar Parcelas',
+            'parcelas.edit' => 'Editar Parcelas',
+            'relatorios.view' => 'Visualizar Relatórios',
+            'usuarios.view' => 'Visualizar Usuários',
+            'usuarios.manage' => 'Gerenciar Usuários',
+        ];
     }
 }

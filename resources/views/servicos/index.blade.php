@@ -27,7 +27,7 @@
                     <option value="">Todos os status</option>
                     <option value="pago">Pago</option>
                     <option value="pendente">Pendente</option>
-                    <option value="nao_pago">Não Pago</option>
+                    <!-- <option value="nao_pago">Não Pago</option> -->
                 </select>
             </div>
             <div class="col-md-3">

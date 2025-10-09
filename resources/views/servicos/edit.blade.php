@@ -132,7 +132,7 @@
                         <select class="form-control" id="status_pagamento" name="status_pagamento" required>
                             <option value="pendente" {{ old('status_pagamento', $servico->status_pagamento) == 'pendente' ? 'selected' : '' }}>Pendente</option>
                             <option value="pago" {{ old('status_pagamento', $servico->status_pagamento) == 'pago' ? 'selected' : '' }}>Pago</option>
-                            <option value="nao_pago" {{ old('status_pagamento', $servico->status_pagamento) == 'nao_pago' ? 'selected' : '' }}>Não Pago</option>
+                            <!-- <option value="nao_pago" {{ old('status_pagamento', $servico->status_pagamento) == 'nao_pago' ? 'selected' : '' }}>Não Pago</option -->>
                         </select>
                         @error('status_pagamento')
                         <div class="text-danger small mt-1">{{ $message }}</div>

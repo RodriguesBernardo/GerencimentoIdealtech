@@ -4,21 +4,21 @@
 
 @section('content')
 <div class="row">
-    <!-- Estatísticas Principais -->
+    <!-- Estatísticas de Cobrança -->
     <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card border-start border-primary border-4">
+        <div class="card border-start border-warning border-4">
             <div class="card-body">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <h5 class="card-title text-muted mb-2">Total Clientes</h5>
-                        <h3 class="mb-0">{{ $totalClientes }}</h3>
-                        <small class="text-success">
-                            <i class="fas fa-trend-up me-1"></i>
-                            Ativos
+                        <h5 class="card-title text-muted mb-2">Clientes Pendentes</h5>
+                        <h3 class="mb-0">{{ $estatisticasCobranca['clientes_pendentes'] }}</h3>
+                        <small class="text-warning">
+                            <i class="fas fa-exclamation-circle me-1"></i>
+                            Para cobrar
                         </small>
                     </div>
                     <div class="flex-shrink-0">
-                        <div class="bg-primary bg-gradient text-white rounded-circle p-3">
+                        <div class="bg-warning bg-gradient text-white rounded-circle p-3">
                             <i class="fas fa-users fa-2x"></i>
                         </div>
                     </div>
@@ -28,19 +28,20 @@
     </div>
 
     <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card border-start border-success border-4">
+        <div class="card border-start border-danger border-4">
             <div class="card-body">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <h5 class="card-title text-muted mb-2">Total Serviços</h5>
-                        <h3 class="mb-0">{{ $totalServicos }}</h3>
-                        <small class="text-muted">
-                            Todos os tempos
+                        <h5 class="card-title text-muted mb-2">Parcelas Vencidas</h5>
+                        <h3 class="mb-0">{{ $estatisticasCobranca['parcelas_vencidas'] }}</h3>
+                        <small class="text-danger">
+                            <i class="fas fa-clock me-1"></i>
+                            Em atraso
                         </small>
                     </div>
                     <div class="flex-shrink-0">
-                        <div class="bg-success bg-gradient text-white rounded-circle p-3">
-                            <i class="fas fa-tools fa-2x"></i>
+                        <div class="bg-danger bg-gradient text-white rounded-circle p-3">
+                            <i class="fas fa-calendar-times fa-2x"></i>
                         </div>
                     </div>
                 </div>
@@ -53,16 +54,16 @@
             <div class="card-body">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <h5 class="card-title text-muted mb-2">Valor Recebido</h5>
-                        <h3 class="mb-0">R$ {{ number_format($valorRecebido, 2, ',', '.') }}</h3>
-                        <small class="text-success">
-                            <i class="fas fa-check-circle me-1"></i>
-                            Pagos
+                        <h5 class="card-title text-muted mb-2">Parcelas a Vencer</h5>
+                        <h3 class="mb-0">{{ $estatisticasCobranca['parcelas_a_vencer'] }}</h3>
+                        <small class="text-info">
+                            <i class="fas fa-calendar-alt me-1"></i>
+                            Próximos 7 dias
                         </small>
                     </div>
                     <div class="flex-shrink-0">
                         <div class="bg-info bg-gradient text-white rounded-circle p-3">
-                            <i class="fas fa-dollar-sign fa-2x"></i>
+                            <i class="fas fa-calendar-check fa-2x"></i>
                         </div>
                     </div>
                 </div>
@@ -71,20 +72,20 @@
     </div>
 
     <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card border-start border-warning border-4">
+        <div class="card border-start border-success border-4">
             <div class="card-body">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <h5 class="card-title text-muted mb-2">Valor Pendente</h5>
-                        <h3 class="mb-0">R$ {{ number_format($valorPendente, 2, ',', '.') }}</h3>
-                        <small class="text-warning">
-                            <i class="fas fa-clock me-1"></i>
-                            A receber
+                        <h5 class="card-title text-muted mb-2">Valor Vencido</h5>
+                        <h3 class="mb-0">R$ {{ number_format($estatisticasCobranca['valor_total_vencido'], 2, ',', '.') }}</h3>
+                        <small class="text-success">
+                            <i class="fas fa-money-bill-wave me-1"></i>
+                            Para receber
                         </small>
                     </div>
                     <div class="flex-shrink-0">
-                        <div class="bg-warning bg-gradient text-white rounded-circle p-3">
-                            <i class="fas fa-hourglass-half fa-2x"></i>
+                        <div class="bg-success bg-gradient text-white rounded-circle p-3">
+                            <i class="fas fa-dollar-sign fa-2x"></i>
                         </div>
                     </div>
                 </div>
@@ -94,80 +95,123 @@
 </div>
 
 <div class="row">
-    <!-- Gráfico de Evolução Mensal -->
+    <!-- Gráfico de Progressão Mensal -->
     <div class="col-xl-8 mb-4">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Evolução de Serviços (Últimos 6 Meses)</h5>
-                <span class="badge bg-primary">Mensal</span>
+                <h5 class="card-title mb-0">Progressão Mensal de Serviços</h5>
+                <span class="badge bg-primary">Últimos 6 meses</span>
             </div>
             <div class="card-body">
-                <canvas id="evolucaoMensalChart" height="250"></canvas>
+                <canvas id="progressaoMensalChart" height="250"></canvas>
             </div>
         </div>
     </div>
 
-    <!-- Gráficos de Status e Tipo de Pagamento -->
+    <!-- Resumo de Cobranças -->
     <div class="col-xl-4 mb-4">
         <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Status dos Serviços</h5>
+            <div class="card-header bg-warning bg-opacity-10">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                    Resumo de Cobranças
+                </h5>
             </div>
             <div class="card-body">
-                <canvas id="statusChart" height="200"></canvas>
-            </div>
-        </div>
+                <div class="d-flex justify-content-between align-items-center mb-3 p-2 rounded bg-danger bg-opacity-10">
+                    <div>
+                        <h6 class="mb-0 text-danger">Parcelas Vencidas</h6>
+                        <small class="text-muted">Valor total em atraso</small>
+                    </div>
+                    <div class="text-end">
+                        <strong class="text-danger">{{ $estatisticasCobranca['parcelas_vencidas'] }}</strong>
+                        <br>
+                        <small class="text-danger">R$ {{ number_format($estatisticasCobranca['valor_total_vencido'], 2, ',', '.') }}</small>
+                    </div>
+                </div>
 
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Tipo de Pagamento</h5>
-            </div>
-            <div class="card-body">
-                <canvas id="tipoPagamentoChart" height="200"></canvas>
+                <div class="d-flex justify-content-between align-items-center mb-3 p-2 rounded bg-info bg-opacity-10">
+                    <div>
+                        <h6 class="mb-0 text-info">Parcelas a Vencer</h6>
+                        <small class="text-muted">Próximos 7 dias</small>
+                    </div>
+                    <div class="text-end">
+                        <strong class="text-info">{{ $estatisticasCobranca['parcelas_a_vencer'] }}</strong>
+                        <br>
+                        <small class="text-info">R$ {{ number_format($estatisticasCobranca['valor_total_a_vencer'], 2, ',', '.') }}</small>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center p-2 rounded bg-warning bg-opacity-10">
+                    <div>
+                        <h6 class="mb-0 text-warning">Clientes Pendentes</h6>
+                        <small class="text-muted">Para contatar</small>
+                    </div>
+                    <div class="text-end">
+                        <strong class="text-warning">{{ $estatisticasCobranca['clientes_pendentes'] }}</strong>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <div class="row">
-    <!-- Serviços Recentes -->
+    <!-- Clientes para Cobrar -->
     <div class="col-xl-6 mb-4">
         <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Serviços Recentes</h5>
-                <a href="{{ route('servicos.index') }}" class="btn btn-sm btn-outline-primary">Ver Todos</a>
+            <div class="card-header d-flex justify-content-between align-items-center bg-warning bg-opacity-10">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                    Clientes para Cobrar
+                </h5>
+                <span class="badge bg-warning">{{ $clientesParaCobrar->count() }}</span>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
-                        <thead class="">
+                        <thead class="table-warning">
                             <tr>
                                 <th>Cliente</th>
-                                <th>Serviço</th>
-                                <th>Valor</th>
-                                <th>Status</th>
+                                <th>Pendente</th>
+                                <th>Parcelas Vencidas</th>
+                                <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($servicosRecentes as $servico)
+                            @foreach($clientesParaCobrar as $cliente)
                             <tr>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        <i class="fas fa-user-circle text-muted me-2"></i>
-                                        <span>{{ Str::limit($servico->cliente->nome, 15) }}</span>
+                                        <i class="fas fa-user text-warning me-2"></i>
+                                        <div>
+                                            <strong>{{ $cliente->nome }}</strong>
+                                            <br>
+                                            <small class="text-muted">
+                                                {{ $cliente->servicos->whereIn('status_pagamento', ['pendente', 'nao_pago'])->count() }} serviços pendentes
+                                            </small>
+                                        </div>
                                     </div>
                                 </td>
-                                <td>{{ Str::limit($servico->nome, 20) }}</td>
                                 <td>
-                                    <span class="fw-bold text-success">R$ {{ number_format($servico->valor, 2, ',', '.') }}</span>
+                                    <span class="fw-bold text-danger">
+                                        R$ {{ number_format($cliente->total_pendente, 2, ',', '.') }}
+                                    </span>
                                 </td>
                                 <td>
-                                    <span class="badge 
-                                        @if($servico->status_pagamento == 'pago') bg-success
-                                        @elseif($servico->status_pagamento == 'nao_pago') bg-danger
-                                        @else bg-warning text-dark @endif">
-                                        {{ ucfirst($servico->status_pagamento) }}
-                                    </span>
+                                    @if($cliente->parcelas_vencidas > 0)
+                                        <span class="badge bg-danger">{{ $cliente->parcelas_vencidas }} vencidas</span>
+                                    @else
+                                        <span class="badge bg-secondary">Nenhuma</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    <a href="{{ route('clientes.show', $cliente) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ route('servicos.create', ['cliente_id' => $cliente->id]) }}" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-plus"></i>
+                                    </a>
                                 </td>
                             </tr>
                             @endforeach
@@ -178,63 +222,182 @@
         </div>
     </div>
 
-    <!-- Top Clientes e Parcelas Pendentes -->
+    <!-- Parcelas Vencidas -->
     <div class="col-xl-6 mb-4">
-        <!-- Top Clientes -->
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Top Clientes</h5>
-                <a href="{{ route('clientes.index') }}" class="btn btn-sm btn-outline-primary">Ver Todos</a>
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center bg-danger bg-opacity-10">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exclamation-circle text-danger me-2"></i>
+                    Parcelas Vencidas
+                </h5>
+                <span class="badge bg-danger">{{ $parcelasVencidas->count() }}</span>
             </div>
-            <div class="card-body">
-                @foreach($topClientes as $cliente)
-                <div class="d-flex align-items-center mb-3">
-                    <div class="flex-shrink-0">
-                        <div class="rounded-circle p-2">
-                            <i class="fas fa-user text-primary"></i>
-                        </div>
-                    </div>
-                    <div class="flex-grow-1 ms-3">
-                        <h6 class="mb-0">{{ $cliente->nome }}</h6>
-                        <small class="text-muted">
-                            {{ $cliente->total_servicos }} serviços • 
-                            R$ {{ number_format($cliente->servicos_sum_valor, 2, ',', '.') }}
-                        </small>
-                    </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-danger">
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Serviço</th>
+                                <th>Parcela</th>
+                                <th>Valor</th>
+                                <th>Vencimento</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($parcelasVencidas as $parcela)
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-user text-danger me-2"></i>
+                                        <span>{{ Str::limit($parcela->servico->cliente->nome, 15) }}</span>
+                                    </div>
+                                </td>
+                                <td>{{ Str::limit($parcela->servico->nome, 20) }}</td>
+                                <td>
+                                    <span class="badge bg-dark">
+                                        {{ $parcela->numero_parcela }}/{{ $parcela->total_parcelas }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="fw-bold text-danger">
+                                        R$ {{ number_format($parcela->valor_parcela, 2, ',', '.') }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="text-danger">
+                                        {{ $parcela->data_vencimento->format('d/m/Y') }}
+                                    </span>
+                                    <br>
+                                    <small class="text-muted">
+                                        {{ $parcela->data_vencimento->diffForHumans() }}
+                                    </small>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
-                @endforeach
             </div>
         </div>
+    </div>
+</div>
 
-        <!-- Parcelas Pendentes -->
+<div class="row">
+    <!-- Parcelas a Vencer -->
+    <div class="col-xl-6 mb-4">
         <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Parcelas a Vencer</h5>
-                <span class="badge bg-warning">{{ $parcelasPendentes->count() }}</span>
+            <div class="card-header d-flex justify-content-between align-items-center bg-info bg-opacity-10">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-calendar-alt text-info me-2"></i>
+                    Parcelas a Vencer (7 dias)
+                </h5>
+                <span class="badge bg-info">{{ $parcelasAVencer->count() }}</span>
             </div>
-            <div class="card-body">
-                @forelse($parcelasPendentes as $parcela)
-                <div class="d-flex align-items-center mb-3">
-                    <div class="flex-shrink-0">
-                        <div class="rounded-circle p-2">
-                            <i class="fas fa-calendar-day text-warning"></i>
-                        </div>
-                    </div>
-                    <div class="flex-grow-1 ms-3">
-                        <h6 class="mb-0">{{ $parcela->servico->cliente->nome }}</h6>
-                        <small class="text-muted">
-                            Parcela {{ $parcela->numero_parcela }}/{{ $parcela->total_parcelas }} • 
-                            R$ {{ number_format($parcela->valor_parcela, 2, ',', '.') }} • 
-                            Vence: {{ $parcela->data_vencimento->format('d/m/Y') }}
-                        </small>
-                    </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-info">
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Serviço</th>
+                                <th>Parcela</th>
+                                <th>Valor</th>
+                                <th>Vencimento</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($parcelasAVencer as $parcela)
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-user text-info me-2"></i>
+                                        <span>{{ Str::limit($parcela->servico->cliente->nome, 15) }}</span>
+                                    </div>
+                                </td>
+                                <td>{{ Str::limit($parcela->servico->nome, 20) }}</td>
+                                <td>
+                                    <span class="badge bg-dark">
+                                        {{ $parcela->numero_parcela }}/{{ $parcela->total_parcelas }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="fw-bold text-info">
+                                        R$ {{ number_format($parcela->valor_parcela, 2, ',', '.') }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="text-info">
+                                        {{ $parcela->data_vencimento->format('d/m/Y') }}
+                                    </span>
+                                    <br>
+                                    <small class="text-muted">
+                                        {{ $parcela->data_vencimento->diffForHumans() }}
+                                    </small>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
-                @empty
-                <div class="text-center text-muted py-3">
-                    <i class="fas fa-check-circle fa-2x mb-2"></i>
-                    <p class="mb-0">Nenhuma parcela pendente</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Serviços Pendentes -->
+    <div class="col-xl-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center bg-warning bg-opacity-10">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-clock text-warning me-2"></i>
+                    Serviços Pendentes
+                </h5>
+                <span class="badge bg-warning">{{ $servicosPendentes->count() }}</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-warning">
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Serviço</th>
+                                <th>Valor</th>
+                                <th>Status</th>
+                                <th>Data</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($servicosPendentes as $servico)
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-user text-warning me-2"></i>
+                                        <span>{{ Str::limit($servico->cliente->nome, 15) }}</span>
+                                    </div>
+                                </td>
+                                <td>{{ Str::limit($servico->nome, 20) }}</td>
+                                <td>
+                                    <span class="fw-bold text-warning">
+                                        R$ {{ number_format($servico->valor, 2, ',', '.') }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge 
+                                        @if($servico->status_pagamento == 'pendente') bg-warning text-dark
+                                        @else bg-danger @endif">
+                                        {{ ucfirst(str_replace('_', ' ', $servico->status_pagamento)) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        {{ $servico->data_servico->format('d/m/Y') }}
+                                    </small>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
-                @endforelse
             </div>
         </div>
     </div>
@@ -245,20 +408,34 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Gráfico de Evolução Mensal
-        const evolucaoCtx = document.getElementById('evolucaoMensalChart').getContext('2d');
-        const evolucaoChart = new Chart(evolucaoCtx, {
-            type: 'line',
+        // Gráfico de Progressão Mensal (Barras)
+        const progressaoCtx = document.getElementById('progressaoMensalChart').getContext('2d');
+        const progressaoChart = new Chart(progressaoCtx, {
+            type: 'bar',
             data: {
-                labels: @json($evolucaoMensal['meses']),
+                labels: @json($progressaoMensal['meses']),
                 datasets: [{
-                    label: 'Serviços Realizados',
-                    data: @json($evolucaoMensal['valores']),
-                    borderColor: '#3B82F6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4
+                    label: 'Serviços Cadastrados',
+                    data: @json($progressaoMensal['quantidades']),
+                    backgroundColor: [
+                        'rgba(59, 130, 246, 0.7)',
+                        'rgba(16, 185, 129, 0.7)',
+                        'rgba(245, 158, 11, 0.7)',
+                        'rgba(139, 92, 246, 0.7)',
+                        'rgba(14, 165, 233, 0.7)',
+                        'rgba(236, 72, 153, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgb(59, 130, 246)',
+                        'rgb(16, 185, 129)',
+                        'rgb(245, 158, 11)',
+                        'rgb(139, 92, 246)',
+                        'rgb(14, 165, 233)',
+                        'rgb(236, 72, 153)'
+                    ],
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    borderSkipped: false,
                 }]
             },
             options: {
@@ -266,82 +443,33 @@
                 plugins: {
                     legend: {
                         display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `Serviços: ${context.parsed.y}`;
+                            }
+                        }
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            stepSize: 1
+                            stepSize: 1,
+                            callback: function(value) {
+                                if (value % 1 === 0) {
+                                    return value;
+                                }
+                            }
+                        },
+                        grid: {
+                            drawBorder: false
                         }
-                    }
-                }
-            }
-        });
-
-        // Gráfico de Status
-        const statusCtx = document.getElementById('statusChart').getContext('2d');
-        const statusChart = new Chart(statusCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Pago', 'Pendente', 'Não Pago'],
-                datasets: [{
-                    data: [
-                        {{ $servicosPorStatus['pago'] }},
-                        {{ $servicosPorStatus['pendente'] }},
-                        {{ $servicosPorStatus['nao_pago'] }}
-                    ],
-                    backgroundColor: [
-                        '#10B981',
-                        '#F59E0B', 
-                        '#EF4444'
-                    ],
-                    borderWidth: 2,
-                    borderColor: '#fff'
-                }]
-            },
-            options: {
-                responsive: true,
-                cutout: '70%',
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            usePointStyle: true,
-                            padding: 20
-                        }
-                    }
-                }
-            }
-        });
-
-        // Gráfico de Tipo de Pagamento
-        const tipoPagamentoCtx = document.getElementById('tipoPagamentoChart').getContext('2d');
-        const tipoPagamentoChart = new Chart(tipoPagamentoCtx, {
-            type: 'pie',
-            data: {
-                labels: ['À Vista', 'Parcelado'],
-                datasets: [{
-                    data: [
-                        {{ $distribuicaoTipoPagamento['avista'] }},
-                        {{ $distribuicaoTipoPagamento['parcelado'] }}
-                    ],
-                    backgroundColor: [
-                        '#8B5CF6',
-                        '#06B6D4'
-                    ],
-                    borderWidth: 2,
-                    borderColor: '#fff'
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            usePointStyle: true,
-                            padding: 20
+                    },
+                    x: {
+                        grid: {
+                            display: false
                         }
                     }
                 }
@@ -364,6 +492,11 @@
     
     .border-start {
         border-left-width: 4px !important;
+    }
+    
+    .table th {
+        border-top: none;
+        font-weight: 600;
     }
 </style>
 @endpush

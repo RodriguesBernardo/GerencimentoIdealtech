@@ -127,8 +127,8 @@
                             <option value="">Selecione o status</option>
                             <option value="pendente" {{ old('status_pagamento') == 'pendente' ? 'selected' : '' }}>Pendente</option>
                             <option value="pago" {{ old('status_pagamento') == 'pago' ? 'selected' : '' }}>Pago</option>
-                            <option value="nao_pago" {{ old('status_pagamento') == 'nao_pago' ? 'selected' : '' }}>Não Pago</option>
-                        </select>
+<!--                             <option value="nao_pago" {{ old('status_pagamento') == 'nao_pago' ? 'selected' : '' }}>Não Pago</option>
+ -->                     </select>
                         @error('status_pagamento')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
