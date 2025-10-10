@@ -21,12 +21,12 @@
     <!-- Custom CSS -->
     <style>
         :root {
-            --primary-500: #090259;
-            --primary-400: #0b0373;
-            --primary-300: #0d028c;
-            --primary-200: #c7d2fe;
-            --primary-100: #e0e7ff;
-            --primary-50: #f0f4ff;
+            --primary-500: #0077ffff;
+            --primary-400: #288cffff;
+            --primary-300: #4da0ffff;
+            --primary-200: #88c0ffff;
+            --primary-100: #b7d9ffff;
+            --primary-50: rgba(255, 208, 163, 0);
             
             --gray-900: #111827;
             --gray-800: #1F2937;
@@ -56,9 +56,9 @@
         }
         
         [data-bs-theme="dark"] {
-            --primary-500: #818CF8;
-            --primary-400: #A5B4FC;
-            --primary-300: #C7D2FE;
+            --primary-500: #e46e00ff;
+            --primary-400: #ff9735ff;
+            --primary-300: #ffc085ff;
             
             --gray-900: #F9FAFB;
             --gray-800: #F3F4F6;
@@ -218,14 +218,15 @@
         .nav-link:hover {
             background-color: var(--primary-50);
             color: var(--primary-500);
-            transform: translateX(4px);
+            transform: translateX(4p
+            x);
         }
         
         .nav-link.active {
             background-color: var(--primary-50);
             color: var(--primary-500);
             font-weight: 600;
-            box-shadow: 0 0 0 1px var(--primary-100);
+            box-shadow: 0 0 0 2.6px var(--primary-400);
         }
         
         .nav-link.active::before {
@@ -334,16 +335,6 @@
             position: relative;
             overflow: hidden;
             border: 1px solid var(--gray-200);
-        }
-        
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary-500) 0%, var(--primary-400) 100%);
         }
         
         .card:hover {

@@ -18,9 +18,7 @@
                         </small>
                     </div>
                     <div class="flex-shrink-0">
-                        <div class="bg-warning bg-gradient text-white rounded-circle p-3">
-                            <i class="fas fa-users fa-2x"></i>
-                        </div>
+                        <i class="fas fa-users fa-2x"></i>
                     </div>
                 </div>
             </div>
@@ -40,9 +38,7 @@
                         </small>
                     </div>
                     <div class="flex-shrink-0">
-                        <div class="bg-danger bg-gradient text-white rounded-circle p-3">
-                            <i class="fas fa-calendar-times fa-2x"></i>
-                        </div>
+                        <i class="fas fa-calendar-times fa-2x"></i>
                     </div>
                 </div>
             </div>
@@ -62,9 +58,7 @@
                         </small>
                     </div>
                     <div class="flex-shrink-0">
-                        <div class="bg-info bg-gradient text-white rounded-circle p-3">
                             <i class="fas fa-calendar-check fa-2x"></i>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -84,9 +78,7 @@
                         </small>
                     </div>
                     <div class="flex-shrink-0">
-                        <div class="bg-success bg-gradient text-white rounded-circle p-3">
-                            <i class="fas fa-dollar-sign fa-2x"></i>
-                        </div>
+                        <i class="fas fa-dollar-sign fa-2x"></i>
                     </div>
                 </div>
             </div>

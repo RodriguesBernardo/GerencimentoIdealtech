@@ -16,11 +16,11 @@
     
     <style>
         :root {
-            --idealtech-blue: #090259;
-            --idealtech-blue-dark: #07023a;
-            --idealtech-blue-light: #0b0373;
-            --primary-color: #090259;
-            --primary-light: #0b0373;
+            --idealtech-blue: #ff9100ff;
+            --idealtech-blue-dark: #ff9100ff;
+            --idealtech-blue-light: #ff9100ff;
+            --primary-color: #ff9100ff;
+            --primary-light: #ff9100ff;
             --secondary-color: #087c04;
             --dark-color: #2b2b2b;
             --dark-light: #3d3d3d;
@@ -52,7 +52,7 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
-            background: linear-gradient(135deg, #090259 0%, #1e88e5 100%);
+            background: linear-gradient(135deg, #1e2be5ff 0%, #1e88e5 100%);
             background-size: cover;
             background-position: center;
         }
@@ -74,14 +74,16 @@
         }
 
         .auth-logo img {
-            width: 100%;
+            display: block;
+            width: 150%;
+            margin-left: -30px;
             height: auto;
             object-fit: contain;
         }
 
         .auth-title {
             color: var(--text-color);
-            font-weight: 700;
+            font-weight: 500;
             margin-bottom: 8px;
         }
 
