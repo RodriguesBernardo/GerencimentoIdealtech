@@ -39,7 +39,7 @@ class ServicoController extends Controller
         $validated = $request->validate([
             'cliente_id' => 'required|exists:clientes,id',
             'nome' => 'required|string|max:255',
-            'descricao' => 'required|string',
+            'descricao' => 'string',
             'data_servico' => 'required|date',
             'status_pagamento' => 'required|in:pago,nao_pago,pendente',
             'observacao_pagamento' => 'nullable|string',
@@ -109,7 +109,7 @@ class ServicoController extends Controller
         $validated = $request->validate([
             'cliente_id' => 'required|exists:clientes,id',
             'nome' => 'required|string|max:255',
-            'descricao' => 'required|string',
+            'descricao' => 'string',
             'data_servico' => 'required|date',
             'status_pagamento' => 'required|in:pago,nao_pago,pendente',
             'observacao_pagamento' => 'nullable|string',
@@ -204,4 +204,21 @@ class ServicoController extends Controller
 
         return back()->with('success', 'Serviço marcado como pago!');
     }
+
+    public function searchAjax(Request $request)
+    {
+        $search = $request->get('q');
+        
+        $clientes = Cliente::when($search, function ($query, $search) {
+            return $query->where('nome', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('telefone', 'like', "%{$search}%");
+        })
+        ->orderBy('nome')
+        ->limit(20)
+        ->get(['id', 'nome', 'email', 'telefone']);
+
+        return response()->json($clientes);
+    }
+
 }

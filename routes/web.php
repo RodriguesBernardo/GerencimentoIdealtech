@@ -25,7 +25,7 @@ Route::middleware(['auth'])->group(function () {
     // Clientes
     Route::resource('clientes', ClienteController::class);
     Route::get('/clientes/search-ajax', [ClienteController::class, 'searchAjax'])->name('clientes.search-ajax');
-
+    
     // Serviços
     Route::resource('servicos', ServicoController::class);
     Route::post('/servicos/{servico}/update-payment-status', [ServicoController::class, 'updatePaymentStatus'])->name('servicos.update-payment-status');
@@ -38,11 +38,15 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/parcelas/{parcela}', [ParcelaController::class, 'destroy'])->name('parcelas.destroy');
 });
 
-// Rotas Admin - Use o novo nome do middleware
+// Rotas Admin 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'check.admin'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'adminDashboard'])->name('dashboard');
     Route::resource('usuarios', UsuarioController::class);
     Route::patch('/usuarios/{id}/restore', [UsuarioController::class, 'restore'])->name('usuarios.restore');
     Route::delete('/usuarios/{id}/force-delete', [UsuarioController::class, 'forceDelete'])->name('usuarios.force-delete');
+    
+    // Novas rotas de relatórios
     Route::get('/relatorios', [DashboardController::class, 'relatorios'])->name('relatorios');
+    Route::post('/relatorios/dados', [DashboardController::class, 'relatoriosDados'])->name('relatorios.dados');
+    Route::post('/relatorios/exportar', [DashboardController::class, 'exportarRelatorio'])->name('relatorios.exportar');
 });

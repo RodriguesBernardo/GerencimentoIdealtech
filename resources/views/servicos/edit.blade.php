@@ -38,21 +38,13 @@
                 </div>
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label for="nome" class="form-label">Nome do Serviço *</label>
+                        <label for="nome" class="form-label">Descrição do Serviço *</label>
                         <input type="text" class="form-control" id="nome" name="nome" value="{{ old('nome', $servico->nome) }}" required>
                         @error('nome')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
                     </div>
                 </div>
-            </div>
-
-            <div class="mb-3">
-                <label for="descricao" class="form-label">Descrição do Serviço *</label>
-                <textarea class="form-control" id="descricao" name="descricao" rows="3" required>{{ old('descricao', $servico->descricao) }}</textarea>
-                @error('descricao')
-                <div class="text-danger small mt-1">{{ $message }}</div>
-                @enderror
             </div>
 
             <div class="row">

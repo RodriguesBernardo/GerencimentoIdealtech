@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Editar Usuário')
+@section('title', 'Criar Usuário')
 
 @section('content')
 <div class="container-fluid">
@@ -9,21 +9,20 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-user-edit me-2"></i>
-                        Editar Usuário: {{ $usuario->name }}
+                        <i class="fas fa-user-plus me-2"></i>
+                        Criar Novo Usuário
                     </h5>
                 </div>
                 <div class="card-body">
-                    <form action="{{ route('admin.usuarios.update', $usuario) }}" method="POST">
+                    <form action="{{ route('admin.usuarios.store') }}" method="POST">
                         @csrf
-                        @method('PUT')
                         
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="name" class="form-label">Nome Completo *</label>
                                     <input type="text" class="form-control @error('name') is-invalid @enderror" 
-                                           id="name" name="name" value="{{ old('name', $usuario->name) }}" required>
+                                           id="name" name="name" value="{{ old('name') }}" required>
                                     @error('name')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -34,7 +33,7 @@
                                 <div class="mb-3">
                                     <label for="email" class="form-label">Email *</label>
                                     <input type="email" class="form-control @error('email') is-invalid @enderror" 
-                                           id="email" name="email" value="{{ old('email', $usuario->email) }}" required>
+                                           id="email" name="email" value="{{ old('email') }}" required>
                                     @error('email')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -45,10 +44,9 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="password" class="form-label">Nova Senha</label>
+                                    <label for="password" class="form-label">Senha *</label>
                                     <input type="password" class="form-control @error('password') is-invalid @enderror" 
-                                           id="password" name="password" 
-                                           placeholder="Deixe em branco para manter a senha atual">
+                                           id="password" name="password" required>
                                     @error('password')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -60,10 +58,9 @@
                             
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="password_confirmation" class="form-label">Confirmar Nova Senha</label>
+                                    <label for="password_confirmation" class="form-label">Confirmar Senha *</label>
                                     <input type="password" class="form-control" 
-                                           id="password_confirmation" name="password_confirmation"
-                                           placeholder="Confirme a nova senha">
+                                           id="password_confirmation" name="password_confirmation" required>
                                 </div>
                             </div>
                         </div>
@@ -73,7 +70,7 @@
                                 <div class="mb-3">
                                     <label for="telefone" class="form-label">Telefone</label>
                                     <input type="text" class="form-control @error('telefone') is-invalid @enderror" 
-                                           id="telefone" name="telefone" value="{{ old('telefone', $usuario->telefone) }}"
+                                           id="telefone" name="telefone" value="{{ old('telefone') }}"
                                            placeholder="(11) 99999-9999">
                                     @error('telefone')
                                         <div class="invalid-feedback">{{ $message }}</div>
@@ -86,16 +83,10 @@
                                     <label class="form-label">Tipo de Usuário</label>
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" id="is_admin" name="is_admin" 
-                                               value="1" {{ old('is_admin', $usuario->is_admin) ? 'checked' : '' }}
-                                               {{ $usuario->id === auth()->id() ? 'disabled' : '' }}>
+                                               value="1" {{ old('is_admin') ? 'checked' : '' }}>
                                         <label class="form-check-label" for="is_admin">
                                             Usuário Administrador
                                         </label>
-                                        @if($usuario->id === auth()->id())
-                                            <small class="form-text text-muted d-block">
-                                                Você não pode remover seus próprios privilégios de administrador
-                                            </small>
-                                        @endif
                                     </div>
                                 </div>
                             </div>
@@ -116,8 +107,7 @@
                                                id="permissoes_{{ $key }}" 
                                                name="permissoes[]" 
                                                value="{{ $key }}"
-                                               {{ in_array($key, old('permissoes', is_array($usuario->permissoes) ? $usuario->permissoes : [])) ? 'checked' : '' }}
-                                               {{ $usuario->id === auth()->id() && $key === 'usuarios.manage' ? 'disabled' : '' }}>
+                                               {{ in_array($key, old('permissoes', [])) ? 'checked' : '' }}>
                                         <label class="form-check-label" for="permissoes_{{ $key }}">
                                             {{ $label }}
                                         </label>
@@ -135,7 +125,7 @@
                                 <i class="fas fa-arrow-left me-1"></i> Voltar
                             </a>
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-1"></i> Atualizar Usuário
+                                <i class="fas fa-save me-1"></i> Criar Usuário
                             </button>
                         </div>
                     </form>
@@ -176,11 +166,17 @@ document.addEventListener('DOMContentLoaded', function() {
         adminCheckbox.addEventListener('change', function() {
             const checkboxes = document.querySelectorAll('input[name="permissoes[]"]');
             checkboxes.forEach(checkbox => {
-                if (!checkbox.disabled) {
-                    checkbox.checked = this.checked;
-                }
+                checkbox.checked = this.checked;
             });
         });
+
+        // Verificar se já está marcado ao carregar a página
+        if (adminCheckbox.checked) {
+            const checkboxes = document.querySelectorAll('input[name="permissoes[]"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        }
     }
 });
 </script>

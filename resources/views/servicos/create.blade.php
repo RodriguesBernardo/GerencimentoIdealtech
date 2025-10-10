@@ -37,22 +37,13 @@
                 </div>
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label for="nome" class="form-label">Nome do Serviço *</label>
+                        <label for="nome" class="form-label">Descrição do Serviço *</label>
                         <input type="text" class="form-control" id="nome" name="nome" value="{{ old('nome') }}" required>
                         @error('nome')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
                     </div>
                 </div>
-            </div>
-
-            <div class="mb-3">
-                <label for="descricao" class="form-label">Descrição do Serviço *</label>
-                <textarea class="form-control" id="descricao" name="descricao" rows="3" required
-                    placeholder="Descreva detalhadamente o serviço realizado">{{ old('descricao') }}</textarea>
-                @error('descricao')
-                <div class="text-danger small mt-1">{{ $message }}</div>
-                @enderror
             </div>
 
             <div class="row">
@@ -78,16 +69,25 @@
                 </div>
                 <div class="col-md-4">
                     <div class="mb-3">
-                        <label for="tipo_pagamento" class="form-label">Tipo de Pagamento *</label>
-                        <select class="form-control" id="tipo_pagamento" name="tipo_pagamento" required>
-                            <option value="avista" {{ old('tipo_pagamento') == 'avista' ? 'selected' : '' }}>À Vista</option>
-                            <option value="parcelado" {{ old('tipo_pagamento') == 'parcelado' ? 'selected' : '' }}>Parcelado</option>
-                        </select>
-                        @error('tipo_pagamento')
+                        <label for="status_pagamento" class="form-label">Status do Pagamento *</label>
+                        <select class="form-control" id="status_pagamento" name="status_pagamento" required>
+                            <option value="">Selecione o status</option>
+                            <option value="pendente" {{ old('status_pagamento') == 'pendente' ? 'selected' : '' }}>Pendente</option>
+                            <option value="pago" {{ old('status_pagamento') == 'pago' ? 'selected' : '' }}>Pago</option>
+<!--                             <option value="nao_pago" {{ old('status_pagamento') == 'nao_pago' ? 'selected' : '' }}>Não Pago</option>
+ -->                     </select>
+                        @error('status_pagamento')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
                     </div>
                 </div>
+                
+
+
+
+
+
+
             </div>
 
             <!-- Campos de Parcelamento -->
@@ -120,20 +120,20 @@
             </div>
 
             <div class="row">
+
                 <div class="col-md-4">
                     <div class="mb-3">
-                        <label for="status_pagamento" class="form-label">Status do Pagamento *</label>
-                        <select class="form-control" id="status_pagamento" name="status_pagamento" required>
-                            <option value="">Selecione o status</option>
-                            <option value="pendente" {{ old('status_pagamento') == 'pendente' ? 'selected' : '' }}>Pendente</option>
-                            <option value="pago" {{ old('status_pagamento') == 'pago' ? 'selected' : '' }}>Pago</option>
-<!--                             <option value="nao_pago" {{ old('status_pagamento') == 'nao_pago' ? 'selected' : '' }}>Não Pago</option>
- -->                     </select>
-                        @error('status_pagamento')
+                        <label for="tipo_pagamento" class="form-label">Tipo de Pagamento *</label>
+                        <select class="form-control" id="tipo_pagamento" name="tipo_pagamento" required>
+                            <option value="avista" {{ old('tipo_pagamento') == 'avista' ? 'selected' : '' }}>À Vista</option>
+                            <option value="parcelado" {{ old('tipo_pagamento') == 'parcelado' ? 'selected' : '' }}>Parcelado</option>
+                        </select>
+                        @error('tipo_pagamento')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
                     </div>
                 </div>
+            
                 <div class="col-md-4">
                     <div class="mb-3">
                         <label for="pago_at" class="form-label">Data do Pagamento</label>

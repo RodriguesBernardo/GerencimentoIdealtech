@@ -2,6 +2,12 @@
 
 @section('title', 'Editar Usuário')
 
+@section('breadcrumb')
+<li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
+<li class="breadcrumb-item"><a href="{{ route('admin.usuarios.index') }}">Usuários</a></li>
+<li class="breadcrumb-item active">Editar {{ $usuario->name }}</li>
+@endsection
+
 @section('content')
 <div class="container-fluid">
     <div class="row">
@@ -116,7 +122,7 @@
                                                id="permissoes_{{ $key }}" 
                                                name="permissoes[]" 
                                                value="{{ $key }}"
-                                               {{ in_array($key, old('permissoes', json_decode($usuario->permissoes ?? '[]', true) ?? [])) ? 'checked' : '' }}
+                                               {{ in_array($key, old('permissoes', is_array($usuario->permissoes) ? $usuario->permissoes : json_decode($usuario->permissoes ?? '[]', true) ?? [])) ? 'checked' : '' }}
                                                {{ $usuario->id === auth()->id() && $key === 'usuarios.manage' ? 'disabled' : '' }}>
                                         <label class="form-check-label" for="permissoes_{{ $key }}">
                                             {{ $label }}
@@ -181,6 +187,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         });
+
+        // Verificar se já está marcado ao carregar a página
+        if (adminCheckbox.checked) {
+            const checkboxes = document.querySelectorAll('input[name="permissoes[]"]');
+            checkboxes.forEach(checkbox => {
+                if (!checkbox.disabled) {
+                    checkbox.checked = true;
+                }
+            });
+        }
     }
 });
 </script>
