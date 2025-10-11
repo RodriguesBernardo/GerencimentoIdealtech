@@ -85,5 +85,36 @@ class ClienteController extends Controller
             ->with('success', 'Cliente excluído com sucesso!');
     }
 
+    public function searchAjax(Request $request)
+{
+    $search = $request->get('search');
     
+    $clientes = Cliente::when($search, function($query) use ($search) {
+            return $query->where(function($q) use ($search) {
+                $q->where('nome', 'like', '%' . $search . '%')
+                  ->orWhere('cpf_cnpj', 'like', '%' . $search . '%')
+                  ->orWhere('celular', 'like', '%' . $search . '%');
+            });
+        })
+        ->orderBy('nome')
+        ->paginate(10);
+
+    // Formatar a resposta para o Select2
+    $formattedClientes = $clientes->map(function ($cliente) {
+        return [
+            'id' => $cliente->id,
+            'nome' => $cliente->nome,
+            'cpf_cnpj' => $cliente->cpf_cnpj,
+            'celular' => $cliente->celular,
+            'text' => $cliente->nome . ($cliente->cpf_cnpj ? ' - ' . $cliente->cpf_cnpj : '')
+        ];
+    });
+
+    return response()->json([
+        'data' => $formattedClientes,
+        'total' => $clientes->total(),
+        'more' => $clientes->hasMorePages()
+    ]);
+}
+
 }

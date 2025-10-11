@@ -23,13 +23,15 @@
                 <div class="col-md-6">
                     <div class="mb-3">
                         <label for="cliente_id" class="form-label">Cliente *</label>
-                        <select class="form-control" id="cliente_id" name="cliente_id" required>
-                            <option value="">Selecione um cliente</option>
-                            @foreach($clientes as $cliente)
-                            <option value="{{ $cliente->id }}" {{ old('cliente_id', $servico->cliente_id) == $cliente->id ? 'selected' : '' }}>
-                                {{ $cliente->nome }}
-                            </option>
-                            @endforeach
+                        <select class="form-control select2-cliente" id="cliente_id" name="cliente_id" required>
+                            @if($servico->cliente_id && $servico->cliente)
+                                <option value="{{ $servico->cliente_id }}" selected>
+                                    {{ $servico->cliente->nome }}
+                                    @if($servico->cliente->cpf_cnpj)
+                                        - {{ $servico->cliente->cpf_cnpj }}
+                                    @endif
+                                </option>
+                            @endif
                         </select>
                         @error('cliente_id')
                         <div class="text-danger small mt-1">{{ $message }}</div>
@@ -120,9 +122,6 @@
                 <div class="col-12" id="datas_parcelas_container" style="display: {{ $servico->parcelas > 1 ? 'block' : 'none' }};">
                     <div class="mb-3">
                         <label class="form-label">Datas de Vencimento das Parcelas</label>
-                        <div class="alert alert-info">
-                            <small>Preencha as datas individuais para cada parcela ou deixe em branco para usar vencimentos mensais.</small>
-                        </div>
                         <div id="datas_parcelas_fields" class="row">
                             <!-- As datas das parcelas serão geradas aqui via JavaScript -->
                             @for($i = 2; $i <= $servico->parcelas; $i++)
@@ -135,24 +134,6 @@
                                 </div>
                             @endfor
                         </div>
-                    </div>
-                </div>
-                
-                <div class="col-12">
-                    <div class="alert alert-info" id="parcela_info">
-                        @if($servico->tipo_pagamento == 'parcelado' && $servico->parcelas > 1 && $servico->valor)
-                            <strong>Resumo das Parcelas:</strong><br>
-                            • Total: R$ {{ number_format($servico->valor, 2, ',', '.') }}<br>
-                            • {{ $servico->parcelas }} parcelas de R$ {{ number_format($servico->valor / $servico->parcelas, 2, ',', '.') }}<br>
-                            • Primeira parcela: {{ \Carbon\Carbon::parse($dataPrimeiroVencimento)->format('d/m/Y') }}
-                            @foreach($servico->parcelasServico as $parcela)
-                                @if($parcela->numero_parcela > 1)
-                                    <br>• Parcela {{ $parcela->numero_parcela }}: {{ $parcela->data_vencimento->format('d/m/Y') }}
-                                @endif
-                            @endforeach
-                        @else
-                            Informe o valor total, número de parcelas e primeira data de vencimento para ver o resumo.
-                        @endif
                     </div>
                 </div>
             </div>
@@ -221,6 +202,83 @@
 
 @push('scripts')
 <script>
+    $(document).ready(function() {
+        // Inicializa o Select2 primeiro
+        $('.select2-cliente').select2({
+            theme: 'bootstrap-5',
+            language: 'pt-BR',
+            placeholder: 'Digite o nome ou CPF/CNPJ do cliente...',
+            allowClear: true,
+            width: '100%',
+            ajax: {
+                url: '{{ route('clientes.search-ajax') }}',
+                dataType: 'json',
+                delay: 300,
+                data: function (params) {
+                    return {
+                        search: params.term,
+                        page: params.page || 1
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data.data,
+                        pagination: {
+                            more: (params.page * 10) < data.total
+                        }
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 2,
+            templateResult: function (cliente) {
+                if (cliente.loading) {
+                    return cliente.text;
+                }
+
+                var $container = $(
+                    '<div class="select2-client-result">' +
+                        '<div class="client-name"><strong>' + cliente.nome + '</strong></div>' +
+                        (cliente.cpf_cnpj ? '<div class="client-document text-muted small">' + cliente.cpf_cnpj + '</div>' : '') +
+                        (cliente.celular ? '<div class="client-phone text-muted small">' + cliente.celular + '</div>' : '') +
+                    '</div>'
+                );
+
+                return $container;
+            },
+            templateSelection: function (cliente) {
+                if (cliente.id === '') {
+                    return cliente.text;
+                }
+
+                var selectionText = cliente.nome;
+                if (cliente.cpf_cnpj) {
+                    selectionText += ' - ' + cliente.cpf_cnpj;
+                }
+                
+                return selectionText;
+            }
+        });
+
+        // Limpar seleção quando o usuário clicar no "x"
+        $('.select2-cliente').on('select2:unselecting', function() {
+            $(this).data('unselecting', true);
+        }).on('select2:opening', function(e) {
+            if ($(this).data('unselecting')) {
+                $(this).removeData('unselecting');
+                e.preventDefault();
+            }
+        });
+
+        // Força o Select2 a reconhecer o valor selecionado
+        setTimeout(function() {
+            $('.select2-cliente').trigger('change.select2');
+        }, 100);
+    });
+
+    // Mantém o resto do seu código JavaScript original
     document.addEventListener('DOMContentLoaded', function() {
         const statusPagamento = document.getElementById('status_pagamento');
         const pagoAt = document.getElementById('pago_at');

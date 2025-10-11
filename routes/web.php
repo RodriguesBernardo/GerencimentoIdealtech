@@ -14,7 +14,6 @@ Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-// Rota raiz - redireciona para login (ou dashboard se estiver autenticado)
 Route::get('/', function () {
     return auth()->check() ? redirect()->route('dashboard') : redirect()->route('login');
 });
@@ -24,8 +23,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Clientes
-    Route::resource('clientes', ClienteController::class);
     Route::get('/clientes/search-ajax', [ClienteController::class, 'searchAjax'])->name('clientes.search-ajax');
+    Route::resource('clientes', ClienteController::class);
     
     // Serviços
     Route::resource('servicos', ServicoController::class);
@@ -38,7 +37,7 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/parcelas/{parcela}', [ParcelaController::class, 'atualizarStatus'])->name('parcelas.update');
     Route::delete('/parcelas/{parcela}', [ParcelaController::class, 'destroy'])->name('parcelas.destroy');
 
-    // Atendimentos (Agenda) - Adicione estas rotas
+    // Atendimentos (Agenda)
     Route::resource('atendimentos', AtendimentoController::class);
     Route::get('/atendimentos/events', [AtendimentoController::class, 'getEvents'])->name('atendimentos.events');
     Route::get('/atendimentos/{atendimento}/edit', [AtendimentoController::class, 'edit'])->name('atendimentos.edit');

@@ -21,14 +21,20 @@
                 <div class="col-md-6">
                     <div class="mb-3">
                         <label for="cliente_id" class="form-label">Cliente *</label>
-                        <select class="form-control" id="cliente_id" name="cliente_id" required>
-                            <option value="">Selecione um cliente</option>
-                            @foreach($clientes as $cliente)
-                            <option value="{{ $cliente->id }}"
-                                {{ (old('cliente_id') == $cliente->id || $cliente_id == $cliente->id) ? 'selected' : '' }}>
-                                {{ $cliente->nome }}
-                            </option>
-                            @endforeach
+                        <select class="form-control select2-cliente" id="cliente_id" name="cliente_id" required>
+                            @if(old('cliente_id') || isset($cliente_id))
+                                @php
+                                    $clienteSelecionado = \App\Models\Cliente::find(old('cliente_id', $cliente_id ?? null));
+                                @endphp
+                                @if($clienteSelecionado)
+                                    <option value="{{ $clienteSelecionado->id }}" selected>
+                                        {{ $clienteSelecionado->nome }}
+                                        @if($clienteSelecionado->cpf_cnpj)
+                                            - {{ $clienteSelecionado->cpf_cnpj }}
+                                        @endif
+                                    </option>
+                                @endif
+                            @endif
                         </select>
                         @error('cliente_id')
                         <div class="text-danger small mt-1">{{ $message }}</div>
@@ -324,6 +330,76 @@
             }
         });
     }
+    $(document).ready(function() {
+    $('.select2-cliente').select2({
+        theme: 'bootstrap-5',
+        language: 'pt-BR',
+        placeholder: 'Digite o nome ou CPF/CNPJ do cliente...',
+        allowClear: true,
+        width: '100%',
+        ajax: {
+            url: '{{ route('clientes.search-ajax') }}',
+            dataType: 'json',
+            delay: 300,
+            data: function (params) {
+                return {
+                    search: params.term,
+                    page: params.page || 1
+                };
+            },
+            processResults: function (data, params) {
+                params.page = params.page || 1;
+
+                return {
+                    results: data.data,
+                    pagination: {
+                        more: (params.page * 10) < data.total
+                    }
+                };
+            },
+            cache: true
+        },
+        minimumInputLength: 2,
+        templateResult: function (cliente) {
+            if (cliente.loading) {
+                return cliente.text;
+            }
+
+            var $container = $(
+                '<div class="select2-client-result">' +
+                    '<div class="client-name"><strong>' + cliente.nome + '</strong></div>' +
+                    (cliente.cpf_cnpj ? '<div class="client-document text-muted small">' + cliente.cpf_cnpj + '</div>' : '') +
+                    (cliente.celular ? '<div class="client-phone text-muted small">' + cliente.celular + '</div>' : '') +
+                '</div>'
+            );
+
+            return $container;
+        },
+        templateSelection: function (cliente) {
+            if (cliente.id === '') {
+                return cliente.text;
+            }
+
+            var selectionText = cliente.nome;
+            if (cliente.cpf_cnpj) {
+                selectionText += ' - ' + cliente.cpf_cnpj;
+            }
+            
+            return selectionText;
+        }
+    });
+
+    // Limpar seleção quando o usuário clicar no "x"
+    $('.select2-cliente').on('select2:unselecting', function() {
+        $(this).data('unselecting', true);
+    }).on('select2:opening', function(e) {
+        if ($(this).data('unselecting')) {
+            $(this).removeData('unselecting');
+            e.preventDefault();
+        }
+    });
+});
+
 </script>
 
 <style>

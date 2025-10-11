@@ -376,15 +376,20 @@ function createAtendimento(dateStr) {
 }
 
 function viewAtendimento(event) {
-    fetch('/atendimentos/' + event.id) // CORRIGIDO - com barra no início
-        .then(response => response.json())
+    fetch('/atendimentos/' + event.id)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Erro na resposta do servidor: ' + response.status);
+            }
+            return response.json();
+        })
         .then(data => {
             $('#viewTitulo').text(data.atendimento.titulo);
             $('#viewDescricao').text(data.atendimento.descricao || 'Sem descrição');
             $('#viewDataInicio').text(new Date(data.atendimento.data_inicio).toLocaleString('pt-BR'));
             $('#viewDataFim').text(new Date(data.atendimento.data_fim).toLocaleString('pt-BR'));
             $('#viewCliente').text(data.cliente.nome);
-            $('#viewResponsavel').text(data.responsavel.name);
+            $('#viewResponsavel').text(data.responsavel.name); // Agora deve funcionar
             $('#viewStatus').text(getStatusText(data.atendimento.status)).addClass(`badge-${data.atendimento.status}`);
             $('#viewTipo').text(getTipoText(data.atendimento.tipo));
             $('#viewLocal').text(data.atendimento.local || 'Não informado');
@@ -399,22 +404,38 @@ function viewAtendimento(event) {
         })
         .catch(error => {
             console.error('Erro:', error);
-            showToast('Erro ao carregar atendimento', 'error');
+            showToast('Erro ao carregar atendimento: ' + error.message, 'error');
         });
 }
 
 function editAtendimento(atendimentoId) {
-    fetch('/atendimentos/' + atendimentoId + '/edit') // CORRIGIDO - com barra no início
+    fetch('/atendimentos/' + atendimentoId + '/edit')
         .then(response => response.json())
         .then(data => {
             // Preencher formulário com dados do atendimento
-            Object.keys(data.atendimento).forEach(key => {
-                $(`#${key}`).val(data.atendimento[key]);
-            });
+            $('#atendimentoId').val(data.atendimento.id);
+            $('#cliente_id').val(data.atendimento.cliente_id);
+            $('#user_id').val(data.atendimento.user_id);
+            $('#titulo').val(data.atendimento.titulo);
+            $('#descricao').val(data.atendimento.descricao);
+            
+            // CORREÇÃO: Converter datas para o formato do input datetime-local
+            const dataInicio = new Date(data.atendimento.data_inicio);
+            const dataFim = new Date(data.atendimento.data_fim);
+            
+            $('#data_inicio').val(formatDateTimeForInput(dataInicio));
+            $('#data_fim').val(formatDateTimeForInput(dataFim));
+            
+            $('#status').val(data.atendimento.status);
+            $('#tipo').val(data.atendimento.tipo);
+            $('#local').val(data.atendimento.local);
+            $('#observacoes').val(data.atendimento.observacoes);
             
             // Selecionar cor
             $('.color-option').removeClass('selected');
-            $(`.color-option[data-color="${data.atendimento.cor || '#087c04'}"]`).addClass('selected');
+            const cor = data.atendimento.cor || '#087c04';
+            $(`.color-option[data-color="${cor}"]`).addClass('selected');
+            $('#cor').val(cor);
             
             $('#atendimentoModal').modal('show');
             $('#viewAtendimentoModal').modal('hide');
@@ -423,6 +444,16 @@ function editAtendimento(atendimentoId) {
             console.error('Erro:', error);
             showToast('Erro ao carregar atendimento para edição', 'error');
         });
+}
+
+function formatDateTimeForInput(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
 function saveAtendimento() {

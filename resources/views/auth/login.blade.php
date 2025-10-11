@@ -260,20 +260,6 @@
                 <h2 class="auth-title">IdealTech Soluções em Informática</h2>
             </div>
 
-            <!-- Session Status -->
-            @if(session('status'))
-                <div class="auth-status">
-                    {{ session('status') }}
-                </div>
-            @endif
-
-            <!-- Error Messages -->
-            @if($errors->any())
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    {{ $errors->first() }}
-                </div>
-            @endif
 
             <form method="POST" action="{{ route('login') }}" class="auth-form">
                 @csrf

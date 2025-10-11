@@ -77,13 +77,42 @@ class AtendimentoController extends Controller
         }
     }
         
-    public function edit(Atendimento $atendimento)
+    public function edit($id)
     {
-        $atendimento->load(['cliente', 'user']);
-        
-        return response()->json([
-            'atendimento' => $atendimento
-        ]);
+        try {
+            \Log::info('=== EDIT METHOD CALLED ===');
+            \Log::info('Editando atendimento ID: ' . $id);
+            
+            $atendimento = Atendimento::with(['cliente', 'user'])->findOrFail($id);
+            
+            \Log::info('Atendimento encontrado: ' . $atendimento->id);
+            \Log::info('Data início: ' . $atendimento->data_inicio);
+            \Log::info('Data fim: ' . $atendimento->data_fim);
+            
+            return response()->json([
+                'atendimento' => [
+                    'id' => $atendimento->id,
+                    'cliente_id' => $atendimento->cliente_id,
+                    'user_id' => $atendimento->user_id,
+                    'titulo' => $atendimento->titulo,
+                    'descricao' => $atendimento->descricao,
+                    'data_inicio' => $atendimento->data_inicio,
+                    'data_fim' => $atendimento->data_fim,
+                    'status' => $atendimento->status,
+                    'tipo' => $atendimento->tipo,
+                    'local' => $atendimento->local,
+                    'observacoes' => $atendimento->observacoes,
+                    'cor' => $atendimento->cor,
+                ],
+                'cliente' => $atendimento->cliente,
+                'responsavel' => $atendimento->user // CORREÇÃO: mudado de 'responsavel' para 'user'
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('ERRO no método edit: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            return response()->json(['error' => 'Erro ao carregar atendimento: ' . $e->getMessage()], 500);
+        }
     }
 
     public function store(Request $request)

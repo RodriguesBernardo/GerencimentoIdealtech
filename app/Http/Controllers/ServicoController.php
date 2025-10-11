@@ -26,14 +26,15 @@ class ServicoController extends Controller
     }
 
 
-    public function create(Request $request)
+    public function create()
     {
-        $clientes = Cliente::orderBy('nome')->get();
-        $cliente_id = $request->get('cliente_id');
-
-        return view('servicos.create', compact('clientes', 'cliente_id'));
+        // Remova ou comente esta linha que carrega todos os clientes
+        // $clientes = Cliente::orderBy('nome')->get();
+        
+        return view('servicos.create', [
+            // 'clientes' => $clientes, // Não precisamos mais disso
+        ]);
     }
-
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -110,11 +111,9 @@ class ServicoController extends Controller
 
     public function edit(Servico $servico)
     {
-        $clientes = Cliente::orderBy('nome')->get();
-        // Carrega as parcelas do serviço
         $servico->load('parcelasServico'); 
 
-        return view('servicos.edit', compact('servico', 'clientes'));
+        return view('servicos.edit', compact('servico'));
     }
 
     public function update(Request $request, Servico $servico)
