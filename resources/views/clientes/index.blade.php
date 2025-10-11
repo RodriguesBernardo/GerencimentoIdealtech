@@ -72,23 +72,48 @@
                     <tr>
                         <td>{{ $cliente->nome }}</td>
                         <td>{{ $cliente->cpf_cnpj ?? '-' }}</td>
-                        <td>{{ $cliente->celular ?? '-' }}</td>
+                        <td>
+                            @if($cliente->celular)
+                                <div class="d-flex align-items-center gap-1">
+                                    <span>{{ $cliente->celular }}</span>
+                                    @if($cliente->celular)
+                                        <a href="https://wa.me/55{{ preg_replace('/\D/', '', $cliente->celular) }}" 
+                                           target="_blank" 
+                                           class="btn btn-sm btn-success p-1"
+                                           title="Abrir WhatsApp">
+                                            <i class="fab fa-whatsapp" style="font-size: 0.875rem;"></i>
+                                        </a>
+                                    @endif
+                                </div>
+                            @else
+                                -
+                            @endif
+                        </td>
                         <td>
                             <span class="badge bg-primary">{{ $cliente->servicos_count ?? 0 }}</span>
                         </td>
                         <td>
                             <div class="btn-group">
-                                <a href="{{ route('clientes.show', $cliente) }}" class="btn btn-sm btn-outline-primary">
+                                <a href="{{ route('clientes.show', $cliente) }}" class="btn btn-sm btn-outline-primary" title="Ver detalhes">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <a href="{{ route('clientes.edit', $cliente) }}" class="btn btn-sm btn-outline-secondary">
+                                <a href="{{ route('clientes.edit', $cliente) }}" class="btn btn-sm btn-outline-secondary" title="Editar">
                                     <i class="fas fa-edit"></i>
                                 </a>
+                                @if($cliente->celular)
+                                    <a href="https://wa.me/55{{ preg_replace('/\D/', '', $cliente->celular) }}" 
+                                       target="_blank" 
+                                       class="btn btn-sm btn-success"
+                                       title="Abrir WhatsApp">
+                                        <i class="fab fa-whatsapp"></i>
+                                    </a>
+                                @endif
                                 <form action="{{ route('clientes.destroy', $cliente) }}" method="POST" class="d-inline">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-sm btn-outline-danger" 
-                                            onclick="return confirm('Tem certeza que deseja excluir este cliente?')">
+                                            onclick="return confirm('Tem certeza que deseja excluir este cliente?')"
+                                            title="Excluir">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </form>
@@ -176,6 +201,17 @@
 
 .search-box .btn {
     border-radius: 0 8px 8px 0;
+}
+
+/* Estilo para o botão do WhatsApp */
+.btn-success {
+    background-color: #25D366;
+    border-color: #25D366;
+}
+
+.btn-success:hover {
+    background-color: #128C7E;
+    border-color: #128C7E;
 }
 </style>
 @endsection

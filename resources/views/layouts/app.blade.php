@@ -797,6 +797,13 @@
                     <span class="nav-link-text">Serviços</span>
                 </a>
             </li>
+
+            <li class="nav-item">
+                <a href="{{ route('atendimentos.index') }}" class="nav-link {{ Request::is('atendimentos*') ? 'active' : '' }}">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span class="nav-link-text">Agenda</span>
+                </a>
+            </li>
             
             @auth
                 @if(Auth::user()->is_admin)
@@ -808,7 +815,7 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="{{ route('admin.relatorios') }}" class="nav-link {{ Request::is('admin/relatorios*') ? 'active' : '' }}">
+                    <a href="{{ route('admin.relatorios.index') }}" class="nav-link {{ Request::is('admin/relatorios*') ? 'active' : '' }}">
                         <i class="fas fa-chart-bar"></i>
                         <span class="nav-link-text">Relatórios</span>
                     </a>

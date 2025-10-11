@@ -5,14 +5,14 @@
 @section('breadcrumb')
 <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
 <li class="breadcrumb-item"><a href="{{ route('servicos.index') }}">Serviços</a></li>
-<li class="breadcrumb-item"><a href="{{ route('servicos.show', $servico) }}">{{ $servico->nome }}</a></li>
+<li class="breadcrumb-item"><a href="{{ route('servicos.show', $servico) }}">{{ $servico->descricao }}</a></li>
 <li class="breadcrumb-item active">Editar</li>
 @endsection
 
 @section('content')
 <div class="card">
     <div class="card-header">
-        <h5 class="card-title mb-0">Editar Serviço: {{ $servico->nome }}</h5>
+        <h5 class="card-title mb-0">Editar Serviço: {{ $servico->descricao }}</h5>
     </div>
     <div class="card-body">
         <form action="{{ route('servicos.update', $servico) }}" method="POST">
@@ -38,9 +38,9 @@
                 </div>
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label for="nome" class="form-label">Descrição do Serviço *</label>
-                        <input type="text" class="form-control" id="nome" name="nome" value="{{ old('nome', $servico->nome) }}" required>
-                        @error('nome')
+                        <label for="descricao" class="form-label">Descrição do Serviço *</label>
+                        <input type="text" class="form-control" id="descricao" name="descricao" value="{{ old('descricao', $servico->descricao) }}" required>
+                        @error('descricao')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
                     </div>
@@ -51,7 +51,8 @@
                 <div class="col-md-4">
                     <div class="mb-3">
                         <label for="data_servico" class="form-label">Data do Serviço *</label>
-                        <input type="date" class="form-control" id="data_servico" name="data_servico" value="{{ old('data_servico', $servico->data_servico->format('Y-m-d')) }}" required>
+                        <input type="date" class="form-control" id="data_servico" name="data_servico"
+                            value="{{ old('data_servico', $servico->data_servico->format('Y-m-d')) }}" required>
                         @error('data_servico')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
@@ -60,7 +61,8 @@
                 <div class="col-md-4">
                     <div class="mb-3">
                         <label for="valor" class="form-label">Valor (R$)</label>
-                        <input type="number" class="form-control" id="valor" name="valor" value="{{ old('valor', $servico->valor) }}" step="0.01" min="0">
+                        <input type="number" class="form-control" id="valor" name="valor"
+                            value="{{ old('valor', $servico->valor) }}" step="0.01" min="0" placeholder="0,00">
                         @error('valor')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
@@ -68,12 +70,13 @@
                 </div>
                 <div class="col-md-4">
                     <div class="mb-3">
-                        <label for="tipo_pagamento" class="form-label">Tipo de Pagamento *</label>
-                        <select class="form-control" id="tipo_pagamento" name="tipo_pagamento" required>
-                            <option value="avista" {{ old('tipo_pagamento', $servico->tipo_pagamento) == 'avista' ? 'selected' : '' }}>À Vista</option>
-                            <option value="parcelado" {{ old('tipo_pagamento', $servico->tipo_pagamento) == 'parcelado' ? 'selected' : '' }}>Parcelado</option>
+                        <label for="status_pagamento" class="form-label">Status do Pagamento *</label>
+                        <select class="form-control" id="status_pagamento" name="status_pagamento" required>
+                            <option value="">Selecione o status</option>
+                            <option value="pendente" {{ old('status_pagamento', $servico->status_pagamento) == 'pendente' ? 'selected' : '' }}>Pendente</option>
+                            <option value="pago" {{ old('status_pagamento', $servico->status_pagamento) == 'pago' ? 'selected' : '' }}>Pago</option>
                         </select>
-                        @error('tipo_pagamento')
+                        @error('status_pagamento')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
                     </div>
@@ -82,10 +85,16 @@
 
             <!-- Campos de Parcelamento -->
             @php
-            $displayParcelamento = $servico->tipo_pagamento == 'parcelado' ? 'block' : 'none';
-            $dataPrimeiroVencimento = $servico->parcelasServico->isNotEmpty() ? $servico->parcelasServico->first()->data_vencimento->format('Y-m-d') : date('Y-m-d');
+                $displayParcelamento = $servico->tipo_pagamento == 'parcelado' ? 'block' : 'none';
+                $dataPrimeiroVencimento = $servico->parcelasServico->isNotEmpty() ? $servico->parcelasServico->first()->data_vencimento->format('Y-m-d') : date('Y-m-d');
+                
+                // Prepara as datas existentes das parcelas para o JavaScript
+                $datasExistentes = [];
+                foreach ($servico->parcelasServico as $parcela) {
+                    $datasExistentes[$parcela->numero_parcela] = $parcela->data_vencimento->format('Y-m-d');
+                }
             @endphp
-            <div class="row" id="parcelamento_fields">
+            <div class="row" id="parcelamento_fields" style="display: {{ $displayParcelamento }};">
                 <div class="col-md-6">
                     <div class="mb-3">
                         <label for="parcelas" class="form-label">Número de Parcelas *</label>
@@ -106,12 +115,43 @@
                         @enderror
                     </div>
                 </div>
+                
+                <!-- Container para as datas individuais das parcelas -->
+                <div class="col-12" id="datas_parcelas_container" style="display: {{ $servico->parcelas > 1 ? 'block' : 'none' }};">
+                    <div class="mb-3">
+                        <label class="form-label">Datas de Vencimento das Parcelas</label>
+                        <div class="alert alert-info">
+                            <small>Preencha as datas individuais para cada parcela ou deixe em branco para usar vencimentos mensais.</small>
+                        </div>
+                        <div id="datas_parcelas_fields" class="row">
+                            <!-- As datas das parcelas serão geradas aqui via JavaScript -->
+                            @for($i = 2; $i <= $servico->parcelas; $i++)
+                                <div class="col-md-4 mb-2">
+                                    <label for="datas_parcelas_{{ $i }}" class="form-label small">Parcela {{ $i }}</label>
+                                    <input type="date" class="form-control form-control-sm" 
+                                           id="datas_parcelas_{{ $i }}" 
+                                           name="datas_parcelas[{{ $i }}]" 
+                                           value="{{ old("datas_parcelas.$i", $datasExistentes[$i] ?? '') }}">
+                                </div>
+                            @endfor
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="col-12">
                     <div class="alert alert-info" id="parcela_info">
-                        @if($servico->tipo_pagamento == 'parcelado' && $servico->parcelas > 1)
-                        <strong>Resumo das Parcelas:</strong><br>
-                        • Total: R$ {{ number_format($servico->valor, 2, ',', '.') }}<br>
-                        • {{ $servico->parcelas }} parcelas de R$ {{ number_format($servico->valor / $servico->parcelas, 2, ',', '.') }}
+                        @if($servico->tipo_pagamento == 'parcelado' && $servico->parcelas > 1 && $servico->valor)
+                            <strong>Resumo das Parcelas:</strong><br>
+                            • Total: R$ {{ number_format($servico->valor, 2, ',', '.') }}<br>
+                            • {{ $servico->parcelas }} parcelas de R$ {{ number_format($servico->valor / $servico->parcelas, 2, ',', '.') }}<br>
+                            • Primeira parcela: {{ \Carbon\Carbon::parse($dataPrimeiroVencimento)->format('d/m/Y') }}
+                            @foreach($servico->parcelasServico as $parcela)
+                                @if($parcela->numero_parcela > 1)
+                                    <br>• Parcela {{ $parcela->numero_parcela }}: {{ $parcela->data_vencimento->format('d/m/Y') }}
+                                @endif
+                            @endforeach
+                        @else
+                            Informe o valor total, número de parcelas e primeira data de vencimento para ver o resumo.
                         @endif
                     </div>
                 </div>
@@ -120,17 +160,17 @@
             <div class="row">
                 <div class="col-md-4">
                     <div class="mb-3">
-                        <label for="status_pagamento" class="form-label">Status do Pagamento *</label>
-                        <select class="form-control" id="status_pagamento" name="status_pagamento" required>
-                            <option value="pendente" {{ old('status_pagamento', $servico->status_pagamento) == 'pendente' ? 'selected' : '' }}>Pendente</option>
-                            <option value="pago" {{ old('status_pagamento', $servico->status_pagamento) == 'pago' ? 'selected' : '' }}>Pago</option>
-                            <!-- <option value="nao_pago" {{ old('status_pagamento', $servico->status_pagamento) == 'nao_pago' ? 'selected' : '' }}>Não Pago</option -->>
+                        <label for="tipo_pagamento" class="form-label">Tipo de Pagamento *</label>
+                        <select class="form-control" id="tipo_pagamento" name="tipo_pagamento" required>
+                            <option value="avista" {{ old('tipo_pagamento', $servico->tipo_pagamento) == 'avista' ? 'selected' : '' }}>À Vista</option>
+                            <option value="parcelado" {{ old('tipo_pagamento', $servico->tipo_pagamento) == 'parcelado' ? 'selected' : '' }}>Parcelado</option>
                         </select>
-                        @error('status_pagamento')
+                        @error('tipo_pagamento')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
                     </div>
                 </div>
+            
                 <div class="col-md-4">
                     <div class="mb-3">
                         <label for="pago_at" class="form-label">Data do Pagamento</label>
@@ -148,7 +188,7 @@
             <div class="mb-3">
                 <label for="observacao_pagamento" class="form-label">Observação do Pagamento</label>
                 <textarea class="form-control" id="observacao_pagamento" name="observacao_pagamento" rows="2"
-                    placeholder="Ex: Boleto 30 dias, Pix, Cartão, Cheque...">{{ old('observacao_pagamento', $servico->observacao_pagamento) }}</textarea>
+                    placeholder="Ex: Boleto 30 dias, Pix, Cartão, Cheque, Aguardando pagamento...">{{ old('observacao_pagamento', $servico->observacao_pagamento) }}</textarea>
                 @error('observacao_pagamento')
                 <div class="text-danger small mt-1">{{ $message }}</div>
                 @enderror
@@ -156,7 +196,8 @@
 
             <div class="mb-3">
                 <label for="observacoes" class="form-label">Observações Gerais</label>
-                <textarea class="form-control" id="observacoes" name="observacoes" rows="3">{{ old('observacoes', $servico->observacoes) }}</textarea>
+                <textarea class="form-control" id="observacoes" name="observacoes" rows="3"
+                    placeholder="Observações adicionais sobre o serviço">{{ old('observacoes', $servico->observacoes) }}</textarea>
                 @error('observacoes')
                 <div class="text-danger small mt-1">{{ $message }}</div>
                 @enderror
@@ -187,7 +228,10 @@
         const parcelamentoFields = document.getElementById('parcelamento_fields');
         const parcelasInput = document.getElementById('parcelas');
         const valorInput = document.getElementById('valor');
+        const dataPrimeiroVencimento = document.getElementById('data_primeiro_vencimento');
         const parcelaInfo = document.getElementById('parcela_info');
+        const datasParcelasContainer = document.getElementById('datas_parcelas_container');
+        const datasParcelasFields = document.getElementById('datas_parcelas_fields');
 
         function togglePagoAtField() {
             if (statusPagamento.value === 'pago') {
@@ -206,27 +250,85 @@
             if (tipoPagamento.value === 'parcelado') {
                 parcelamentoFields.style.display = 'block';
                 calcularParcelas();
+                gerarCamposDatasParcelas();
             } else {
                 parcelamentoFields.style.display = 'none';
                 parcelaInfo.innerHTML = '';
+                datasParcelasContainer.style.display = 'none';
+            }
+        }
+
+        function gerarCamposDatasParcelas() {
+            const numParcelas = parseInt(parcelasInput.value) || 2;
+            
+            if (numParcelas > 1) {
+                datasParcelasContainer.style.display = 'block';
+                datasParcelasFields.innerHTML = '';
+                
+                for (let i = 2; i <= numParcelas; i++) {
+                    const dataBase = dataPrimeiroVencimento.value ? new Date(dataPrimeiroVencimento.value) : new Date();
+                    const dataSugerida = new Date(dataBase);
+                    dataSugerida.setMonth(dataSugerida.getMonth() + (i - 1));
+                    
+                    const dataSugeridaStr = dataSugerida.toISOString().split('T')[0];
+                    
+                    // Verifica se já existe um valor para esta parcela
+                    const existingInput = document.querySelector(`input[name="datas_parcelas[${i}]"]`);
+                    const existingValue = existingInput ? existingInput.value : dataSugeridaStr;
+                    
+                    const div = document.createElement('div');
+                    div.className = 'col-md-4 mb-2';
+                    div.innerHTML = `
+                        <label for="datas_parcelas_${i}" class="form-label small">Parcela ${i}</label>
+                        <input type="date" class="form-control form-control-sm" 
+                               id="datas_parcelas_${i}" 
+                               name="datas_parcelas[${i}]" 
+                               value="${existingValue}">
+                    `;
+                    datasParcelasFields.appendChild(div);
+                }
+            } else {
+                datasParcelasContainer.style.display = 'none';
             }
         }
 
         function calcularParcelas() {
             const valor = parseFloat(valorInput.value) || 0;
             const numParcelas = parseInt(parcelasInput.value) || 2;
-
-            if (valor > 0 && numParcelas > 1) {
+            const primeiraData = dataPrimeiroVencimento.value;
+            
+            if (valor > 0 && numParcelas > 1 && primeiraData) {
                 const valorParcela = valor / numParcelas;
-                parcelaInfo.innerHTML = `
-                <strong>Resumo das Parcelas:</strong><br>
-                • Total: R$ ${valor.toFixed(2).replace('.', ',')}<br>
-                • ${numParcelas} parcelas de R$ ${valorParcela.toFixed(2).replace('.', ',')}<br>
-                • Primeira parcela vence em: ${document.getElementById('data_primeiro_vencimento').value}
-            `;
+                let infoHTML = `
+                    <strong>Resumo das Parcelas:</strong><br>
+                    • Total: R$ ${valor.toFixed(2).replace('.', ',')}<br>
+                    • ${numParcelas} parcelas de R$ ${valorParcela.toFixed(2).replace('.', ',')}<br>
+                    • Primeira parcela: ${formatarData(primeiraData)}
+                `;
+                
+                // Adiciona informações das demais parcelas
+                for (let i = 2; i <= numParcelas; i++) {
+                    const inputData = document.getElementById(`datas_parcelas_${i}`);
+                    const dataParcela = inputData ? inputData.value : calcularDataMensal(primeiraData, i-1);
+                    infoHTML += `<br>• Parcela ${i}: ${formatarData(dataParcela)}`;
+                }
+                
+                parcelaInfo.innerHTML = infoHTML;
             } else {
-                parcelaInfo.innerHTML = 'Informe o valor total e número de parcelas para ver o resumo.';
+                parcelaInfo.innerHTML = 'Informe o valor total, número de parcelas e primeira data de vencimento para ver o resumo.';
             }
+        }
+
+        function formatarData(dataString) {
+            if (!dataString) return 'Não definida';
+            const data = new Date(dataString);
+            return data.toLocaleDateString('pt-BR');
+        }
+
+        function calcularDataMensal(dataBase, meses) {
+            const data = new Date(dataBase);
+            data.setMonth(data.getMonth() + meses);
+            return data.toISOString().split('T')[0];
         }
 
         // Inicializa os campos
@@ -237,12 +339,36 @@
         statusPagamento.addEventListener('change', togglePagoAtField);
         tipoPagamento.addEventListener('change', toggleParcelamentoFields);
         valorInput.addEventListener('input', calcularParcelas);
-        parcelasInput.addEventListener('input', calcularParcelas);
+        parcelasInput.addEventListener('input', function() {
+            gerarCamposDatasParcelas();
+            calcularParcelas();
+        });
+        dataPrimeiroVencimento.addEventListener('change', function() {
+            gerarCamposDatasParcelas();
+            calcularParcelas();
+        });
 
-        const dataVencimentoInput = document.getElementById('data_primeiro_vencimento');
-        if (dataVencimentoInput) {
-            dataVencimentoInput.addEventListener('change', calcularParcelas);
+        // Delegation para os campos de data dinâmicos
+        document.addEventListener('change', function(e) {
+            if (e.target.name && e.target.name.startsWith('datas_parcelas')) {
+                calcularParcelas();
+            }
+        });
+
+        // Formata o valor para aceitar casas decimais
+        if (valorInput) {
+            valorInput.addEventListener('blur', function() {
+                if (this.value) {
+                    this.value = parseFloat(this.value).toFixed(2);
+                }
+            });
         }
     });
 </script>
+
+<style>
+    .is-invalid {
+        border-color: #dc3545 !important;
+    }
+</style>
 @endpush

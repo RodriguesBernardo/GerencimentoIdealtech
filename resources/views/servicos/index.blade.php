@@ -64,7 +64,6 @@
                             </div>
                         </td>
                         <td>
-                            <strong class="d-block">{{ $servico->nome }}</strong>
                             <small class="text-muted">{{ Str::limit($servico->descricao, 50) }}</small>
                         </td>
                         <td>

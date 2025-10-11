@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\ServicoController;
 use App\Http\Controllers\ParcelaController;
+use App\Http\Controllers\AtendimentoController; 
 use App\Http\Controllers\Admin\UsuarioController;
 use App\Http\Controllers\Auth\LoginController;
 
@@ -36,6 +37,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/parcelas/{parcela}/marcar-pendente', [ParcelaController::class, 'marcarPendente'])->name('parcelas.marcar-pendente');
     Route::put('/parcelas/{parcela}', [ParcelaController::class, 'atualizarStatus'])->name('parcelas.update');
     Route::delete('/parcelas/{parcela}', [ParcelaController::class, 'destroy'])->name('parcelas.destroy');
+
+    // Atendimentos (Agenda) - Adicione estas rotas
+    Route::resource('atendimentos', AtendimentoController::class);
+    Route::get('/atendimentos/events', [AtendimentoController::class, 'getEvents'])->name('atendimentos.events');
+    Route::get('/atendimentos/{atendimento}/edit', [AtendimentoController::class, 'edit'])->name('atendimentos.edit');
+    Route::get('/api/atendimentos-events', [AtendimentoController::class, 'getEvents'])->name('api.atendimentos.events');
 });
 
 // Rotas Admin 
@@ -45,8 +52,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'check.admin'])->gro
     Route::patch('/usuarios/{id}/restore', [UsuarioController::class, 'restore'])->name('usuarios.restore');
     Route::delete('/usuarios/{id}/force-delete', [UsuarioController::class, 'forceDelete'])->name('usuarios.force-delete');
     
-    // Novas rotas de relatórios
-    Route::get('/relatorios', [DashboardController::class, 'relatorios'])->name('relatorios');
+    // Rotas de Relatórios 
+    Route::get('/relatorios', [DashboardController::class, 'relatorios'])->name('relatorios.index');
     Route::post('/relatorios/dados', [DashboardController::class, 'relatoriosDados'])->name('relatorios.dados');
     Route::post('/relatorios/exportar', [DashboardController::class, 'exportarRelatorio'])->name('relatorios.exportar');
 });

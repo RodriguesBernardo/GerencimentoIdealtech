@@ -35,14 +35,8 @@
             <div class="row">
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label for="whatsapp" class="form-label">WhatsApp</label>
-                        <input type="text" class="form-control" id="whatsapp" name="whatsapp" value="{{ old('whatsapp') }}">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label for="email" class="form-label">E-mail</label>
-                        <input type="email" class="form-control" id="email" name="email" value="{{ old('email') }}">
+                        <label for="celular" class="form-label">Telefone</label>
+                        <input type="text" class="form-control" id="celular" name="celular" value="{{ old('celular') }}">
                     </div>
                 </div>
             </div>

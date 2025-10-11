@@ -37,8 +37,8 @@
                 </div>
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label for="nome" class="form-label">Descrição do Serviço *</label>
-                        <input type="text" class="form-control" id="nome" name="nome" value="{{ old('nome') }}" required>
+                        <label for="descricao" class="form-label">Descrição do Serviço *</label>
+                        <input type="text" class="form-control" id="descricao" name="descricao" value="{{ old('descricao') }}" required>
                         @error('nome')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
@@ -71,23 +71,14 @@
                     <div class="mb-3">
                         <label for="status_pagamento" class="form-label">Status do Pagamento *</label>
                         <select class="form-control" id="status_pagamento" name="status_pagamento" required>
-                            <option value="">Selecione o status</option>
                             <option value="pendente" {{ old('status_pagamento') == 'pendente' ? 'selected' : '' }}>Pendente</option>
                             <option value="pago" {{ old('status_pagamento') == 'pago' ? 'selected' : '' }}>Pago</option>
-<!--                             <option value="nao_pago" {{ old('status_pagamento') == 'nao_pago' ? 'selected' : '' }}>Não Pago</option>
- -->                     </select>
+                        </select>
                         @error('status_pagamento')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
                     </div>
                 </div>
-                
-
-
-
-
-
-
             </div>
 
             <!-- Campos de Parcelamento -->
@@ -112,6 +103,20 @@
                         @enderror
                     </div>
                 </div>
+                
+                <!-- Container para as datas individuais das parcelas -->
+                <div class="col-12" id="datas_parcelas_container" style="display: none;">
+                    <div class="mb-3">
+                        <label class="form-label">Datas de Vencimento das Parcelas</label>
+                        <div class="alert alert-info">
+                            <small>Preencha as datas individuais para cada parcela ou deixe em branco para usar vencimentos mensais.</small>
+                        </div>
+                        <div id="datas_parcelas_fields" class="row">
+                            <!-- As datas das parcelas serão geradas aqui via JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="col-12">
                     <div class="alert alert-info" id="parcela_info">
                         <!-- Informações das parcelas serão exibidas aqui -->
@@ -120,7 +125,6 @@
             </div>
 
             <div class="row">
-
                 <div class="col-md-4">
                     <div class="mb-3">
                         <label for="tipo_pagamento" class="form-label">Tipo de Pagamento *</label>
@@ -181,55 +185,16 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Formata o valor para aceitar casas decimais
-        const valorInput = document.getElementById('valor');
-        if (valorInput) {
-            valorInput.addEventListener('blur', function() {
-                if (this.value) {
-                    this.value = parseFloat(this.value).toFixed(2);
-                }
-            });
-        }
-
-        // Validação do formulário
-        const form = document.querySelector('form');
-        form.addEventListener('submit', function(e) {
-            const statusPagamento = document.getElementById('status_pagamento');
-            const descricao = document.getElementById('descricao');
-
-            let isValid = true;
-
-            // Valida status do pagamento
-            if (!statusPagamento.value) {
-                statusPagamento.classList.add('is-invalid');
-                isValid = false;
-            } else {
-                statusPagamento.classList.remove('is-invalid');
-            }
-
-            // Valida descrição
-            if (!descricao.value.trim()) {
-                descricao.classList.add('is-invalid');
-                isValid = false;
-            } else {
-                descricao.classList.remove('is-invalid');
-            }
-
-            if (!isValid) {
-                e.preventDefault();
-                alert('Por favor, preencha todos os campos obrigatórios.');
-            }
-        });
-    });
-
-    document.addEventListener('DOMContentLoaded', function() {
         const statusPagamento = document.getElementById('status_pagamento');
         const pagoAt = document.getElementById('pago_at');
         const tipoPagamento = document.getElementById('tipo_pagamento');
         const parcelamentoFields = document.getElementById('parcelamento_fields');
         const parcelasInput = document.getElementById('parcelas');
         const valorInput = document.getElementById('valor');
+        const dataPrimeiroVencimento = document.getElementById('data_primeiro_vencimento');
         const parcelaInfo = document.getElementById('parcela_info');
+        const datasParcelasContainer = document.getElementById('datas_parcelas_container');
+        const datasParcelasFields = document.getElementById('datas_parcelas_fields');
 
         function togglePagoAtField() {
             if (statusPagamento.value === 'pago') {
@@ -248,27 +213,81 @@
             if (tipoPagamento.value === 'parcelado') {
                 parcelamentoFields.style.display = 'block';
                 calcularParcelas();
+                gerarCamposDatasParcelas();
             } else {
                 parcelamentoFields.style.display = 'none';
                 parcelaInfo.innerHTML = '';
+                datasParcelasContainer.style.display = 'none';
+            }
+        }
+
+        function gerarCamposDatasParcelas() {
+            const numParcelas = parseInt(parcelasInput.value) || 2;
+            
+            if (numParcelas > 1) {
+                datasParcelasContainer.style.display = 'block';
+                datasParcelasFields.innerHTML = '';
+                
+                for (let i = 2; i <= numParcelas; i++) {
+                    const dataBase = dataPrimeiroVencimento.value ? new Date(dataPrimeiroVencimento.value) : new Date();
+                    const dataSugerida = new Date(dataBase);
+                    dataSugerida.setMonth(dataSugerida.getMonth() + (i - 1));
+                    
+                    const dataSugeridaStr = dataSugerida.toISOString().split('T')[0];
+                    
+                    const div = document.createElement('div');
+                    div.className = 'col-md-4 mb-2';
+                    div.innerHTML = `
+                        <label for="datas_parcelas_${i}" class="form-label small">Parcela ${i}</label>
+                        <input type="date" class="form-control form-control-sm" 
+                               id="datas_parcelas_${i}" 
+                               name="datas_parcelas[${i}]" 
+                               value="${dataSugeridaStr}">
+                    `;
+                    datasParcelasFields.appendChild(div);
+                }
+            } else {
+                datasParcelasContainer.style.display = 'none';
             }
         }
 
         function calcularParcelas() {
             const valor = parseFloat(valorInput.value) || 0;
             const numParcelas = parseInt(parcelasInput.value) || 2;
+            const primeiraData = dataPrimeiroVencimento.value;
             
-            if (valor > 0 && numParcelas > 1) {
+            if (valor > 0 && numParcelas > 1 && primeiraData) {
                 const valorParcela = valor / numParcelas;
-                parcelaInfo.innerHTML = `
+                let infoHTML = `
                     <strong>Resumo das Parcelas:</strong><br>
                     • Total: R$ ${valor.toFixed(2).replace('.', ',')}<br>
                     • ${numParcelas} parcelas de R$ ${valorParcela.toFixed(2).replace('.', ',')}<br>
-                    • Primeira parcela vence em: ${document.getElementById('data_primeiro_vencimento').value}
+                    • Primeira parcela: ${formatarData(primeiraData)}
                 `;
+                
+                // Adiciona informações das demais parcelas
+                for (let i = 2; i <= numParcelas; i++) {
+                    const inputData = document.getElementById(`datas_parcelas_${i}`);
+                    const dataParcela = inputData ? inputData.value : calcularDataMensal(primeiraData, i-1);
+                    infoHTML += `<br>• Parcela ${i}: ${formatarData(dataParcela)}`;
+                }
+                
+                parcelaInfo.innerHTML = infoHTML;
             } else {
-                parcelaInfo.innerHTML = 'Informe o valor total e número de parcelas para ver o resumo.';
+                parcelaInfo.innerHTML = 'Informe o valor total, número de parcelas e primeira data de vencimento para ver o resumo.';
             }
+        }
+
+        function formatarData(dataString) {
+            if (!dataString) return 'Não definida';
+            const data = new Date(dataString);
+            return data.toLocaleDateString('pt-BR');
+        }
+
+        function calcularDataMensal(dataBase, meses) {
+            const data = new Date(dataBase);
+            data.setMonth(data.getMonth() + meses);
+            return data.toISOString().split('T')[0];
         }
 
         // Inicializa os campos
@@ -279,13 +298,32 @@
         statusPagamento.addEventListener('change', togglePagoAtField);
         tipoPagamento.addEventListener('change', toggleParcelamentoFields);
         valorInput.addEventListener('input', calcularParcelas);
-        parcelasInput.addEventListener('input', calcularParcelas);
-        
-        const dataVencimentoInput = document.getElementById('data_primeiro_vencimento');
-        if (dataVencimentoInput) {
-            dataVencimentoInput.addEventListener('change', calcularParcelas);
-        }
+        parcelasInput.addEventListener('input', function() {
+            gerarCamposDatasParcelas();
+            calcularParcelas();
+        });
+        dataPrimeiroVencimento.addEventListener('change', function() {
+            gerarCamposDatasParcelas();
+            calcularParcelas();
+        });
+
+        // Delegation para os campos de data dinâmicos
+        datasParcelasFields.addEventListener('change', function(e) {
+            if (e.target.name.startsWith('datas_parcelas')) {
+                calcularParcelas();
+            }
+        });
     });
+
+    // Formata o valor para aceitar casas decimais
+    const valorInput = document.getElementById('valor');
+    if (valorInput) {
+        valorInput.addEventListener('blur', function() {
+            if (this.value) {
+                this.value = parseFloat(this.value).toFixed(2);
+            }
+        });
+    }
 </script>
 
 <style>

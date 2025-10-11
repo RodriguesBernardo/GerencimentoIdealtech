@@ -111,10 +111,10 @@
                                         @if($parcela->status != 'paga')
                                         <form action="{{ route('parcelas.marcar-paga', $parcela) }}" method="POST" class="d-inline">
                                             @csrf
-                                            <button type="submit" class="btn btn-success" 
+                                            <button type="submit" class="btn btn-warning" 
                                                     onclick="return confirm('Marcar parcela {{ $parcela->numero_parcela }} como paga?')"
                                                     title="Marcar como Paga">
-                                                <i class="fas fa-check"></i>
+                                                <i class="fas fa-clock"></i>
                                             </button>
                                         </form>
                                         @endif
@@ -122,62 +122,13 @@
                                         @if($parcela->status == 'paga')
                                         <form action="{{ route('parcelas.marcar-pendente', $parcela) }}" method="POST" class="d-inline">
                                             @csrf
-                                            <button type="submit" class="btn btn-warning" 
+                                            <button type="submit" class="btn btn-success" 
                                                     onclick="return confirm('Marcar parcela {{ $parcela->numero_parcela }} como pendente?')"
                                                     title="Marcar como Pendente">
-                                                <i class="fas fa-clock"></i>
+                                                <i class="fas fa-check"></i>
                                             </button>
                                         </form>
                                         @endif
-                                        
-                                        <!-- Botão para editar detalhes da parcela -->
-                                        <button type="button" class="btn btn-outline-primary" 
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#editParcelaModal{{ $parcela->id }}"
-                                                title="Editar Parcela">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                    </div>
-
-                                    <!-- Modal para editar parcela -->
-                                    <div class="modal fade" id="editParcelaModal{{ $parcela->id }}" tabindex="-1">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title">Editar Parcela {{ $parcela->numero_parcela }}</h5>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                </div>
-                                                <form action="{{ route('parcelas.update', $parcela) }}" method="POST">
-                                                    @csrf
-                                                    @method('PUT')
-                                                    <div class="modal-body">
-                                                        <div class="mb-3">
-                                                            <label for="status{{ $parcela->id }}" class="form-label">Status</label>
-                                                            <select class="form-control" id="status{{ $parcela->id }}" name="status" required>
-                                                                <option value="pendente" {{ $parcela->status == 'pendente' ? 'selected' : '' }}>Pendente</option>
-                                                                <option value="paga" {{ $parcela->status == 'paga' ? 'selected' : '' }}>Paga</option>
-                                                                <option value="atrasada" {{ $parcela->status == 'atrasada' ? 'selected' : '' }}>Atrasada</option>
-                                                            </select>
-                                                        </div>
-                                                        <div class="mb-3">
-                                                            <label for="data_pagamento{{ $parcela->id }}" class="form-label">Data do Pagamento</label>
-                                                            <input type="date" class="form-control" id="data_pagamento{{ $parcela->id }}" 
-                                                                   name="data_pagamento" 
-                                                                   value="{{ $parcela->data_pagamento ? $parcela->data_pagamento->format('Y-m-d') : '' }}">
-                                                        </div>
-                                                        <div class="mb-3">
-                                                            <label for="observacao{{ $parcela->id }}" class="form-label">Observação</label>
-                                                            <textarea class="form-control" id="observacao{{ $parcela->id }}" 
-                                                                      name="observacao" rows="2">{{ $parcela->observacao }}</textarea>
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                                        <button type="submit" class="btn btn-idealtech-blue">Salvar</button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
                                     </div>
                                 </td>
                             </tr>

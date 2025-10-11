@@ -38,8 +38,7 @@ class ServicoController extends Controller
     {
         $validated = $request->validate([
             'cliente_id' => 'required|exists:clientes,id',
-            'nome' => 'required|string|max:255',
-            'descricao' => 'string',
+            'descricao' => 'required|string',
             'data_servico' => 'required|date',
             'status_pagamento' => 'required|in:pago,nao_pago,pendente',
             'observacao_pagamento' => 'nullable|string',
@@ -47,9 +46,14 @@ class ServicoController extends Controller
             'tipo_pagamento' => 'required|in:avista,parcelado',
             'parcelas' => 'required|integer|min:1',
             'data_primeiro_vencimento' => 'nullable|date',
+            'datas_parcelas' => 'nullable|array',
+            'datas_parcelas.*' => 'nullable|date',
             'observacoes' => 'nullable|string',
             'pago_at' => 'nullable|date'
         ]);
+
+        // Remove o campo 'nome' se ele existir no array validado
+        unset($validated['nome']);
 
         // Converte valor vazio para null
         if (empty($validated['valor'])) {
@@ -71,15 +75,24 @@ class ServicoController extends Controller
             $validated['pago_at'] = null;
         }
 
-        // Remove campo que não existe na tabela
+        // Remove campos que não existem na tabela
         $dataPrimeiroVencimento = $validated['data_primeiro_vencimento'] ?? null;
-        unset($validated['data_primeiro_vencimento']);
+        $datasParcelas = $validated['datas_parcelas'] ?? [];
+        unset($validated['data_primeiro_vencimento'], $validated['datas_parcelas']);
 
         $servico = Servico::create($validated);
 
         // Cria as parcelas se for parcelado
         if ($servico->tipo_pagamento === 'parcelado' && $servico->parcelas > 1) {
-            $servico->criarParcelas($dataPrimeiroVencimento);
+            // Prepara o array de datas começando do índice 1
+            $datasVencimento = [1 => $dataPrimeiroVencimento];
+            foreach ($datasParcelas as $index => $data) {
+                if ($data) {
+                    $datasVencimento[$index] = $data;
+                }
+            }
+            
+            $servico->criarParcelas($datasVencimento);
         }
 
         return redirect()->route('servicos.index')
@@ -99,7 +112,7 @@ class ServicoController extends Controller
     {
         $clientes = Cliente::orderBy('nome')->get();
         // Carrega as parcelas do serviço
-        $servico->load('parcelasServico'); // Mude para parcelasServico
+        $servico->load('parcelasServico'); 
 
         return view('servicos.edit', compact('servico', 'clientes'));
     }
@@ -108,8 +121,7 @@ class ServicoController extends Controller
     {
         $validated = $request->validate([
             'cliente_id' => 'required|exists:clientes,id',
-            'nome' => 'required|string|max:255',
-            'descricao' => 'string',
+            'descricao' => 'required|string',
             'data_servico' => 'required|date',
             'status_pagamento' => 'required|in:pago,nao_pago,pendente',
             'observacao_pagamento' => 'nullable|string',
@@ -117,9 +129,14 @@ class ServicoController extends Controller
             'tipo_pagamento' => 'required|in:avista,parcelado',
             'parcelas' => 'required|integer|min:1',
             'data_primeiro_vencimento' => 'nullable|date',
+            'datas_parcelas' => 'nullable|array',
+            'datas_parcelas.*' => 'nullable|date',
             'observacoes' => 'nullable|string',
             'pago_at' => 'nullable|date'
         ]);
+
+        // Remove o campo 'nome' se ele existir no array validado
+        unset($validated['nome']);
 
         // Converte valor vazio para null
         if (empty($validated['valor'])) {
@@ -146,23 +163,33 @@ class ServicoController extends Controller
             $validated['pago_at'] = null;
         }
 
-        // Remove campo que não existe na tabela
+        // Remove campos que não existem na tabela
         $dataPrimeiroVencimento = $validated['data_primeiro_vencimento'] ?? null;
-        unset($validated['data_primeiro_vencimento']);
+        $datasParcelas = $validated['datas_parcelas'] ?? [];
+        unset($validated['data_primeiro_vencimento'], $validated['datas_parcelas']);
 
         $servico->update($validated);
 
         // Recria as parcelas se necessário
         if ($servico->tipo_pagamento === 'parcelado' && $servico->parcelas > 1) {
-            $servico->criarParcelas($dataPrimeiroVencimento);
+            // Prepara o array de datas começando do índice 1
+            $datasVencimento = [1 => $dataPrimeiroVencimento];
+            foreach ($datasParcelas as $index => $data) {
+                if ($data) {
+                    $datasVencimento[$index] = $data;
+                }
+            }
+            
+            $servico->criarParcelas($datasVencimento);
         } else {
             // Se não é parcelado, remove todas as parcelas
-            $servico->parcelasServico()->delete(); // Mude para parcelasServico
+            $servico->parcelasServico()->delete();
         }
 
         return redirect()->route('servicos.show', $servico)
             ->with('success', 'Serviço atualizado com sucesso!');
     }
+
 
     public function destroy(Servico $servico)
     {

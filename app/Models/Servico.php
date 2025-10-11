@@ -12,7 +12,6 @@ class Servico extends Model
 
     protected $fillable = [
         'cliente_id',
-        'nome',
         'descricao',
         'data_servico',
         'status_pagamento',
@@ -88,7 +87,7 @@ class Servico extends Model
     }
 
     // Criar parcelas
-    public function criarParcelas($dataPrimeiroVencimento = null)
+    public function criarParcelas($datasVencimento = [])
     {
         if ($this->tipo_pagamento !== 'parcelado' || $this->parcelas <= 1) {
             return;
@@ -98,14 +97,17 @@ class Servico extends Model
         $this->parcelasServico()->delete();
 
         $valorParcela = $this->valor / $this->parcelas;
-        $dataVencimento = $dataPrimeiroVencimento ? \Carbon\Carbon::parse($dataPrimeiroVencimento) : now();
 
         for ($i = 1; $i <= $this->parcelas; $i++) {
+            $dataVencimento = isset($datasVencimento[$i]) 
+                ? \Carbon\Carbon::parse($datasVencimento[$i])
+                : \Carbon\Carbon::parse($datasVencimento[1])->addMonths($i - 1);
+
             $this->parcelasServico()->create([
                 'numero_parcela' => $i,
                 'total_parcelas' => $this->parcelas,
                 'valor_parcela' => $valorParcela,
-                'data_vencimento' => $dataVencimento->copy()->addMonths($i - 1),
+                'data_vencimento' => $dataVencimento,
                 'status' => 'pendente',
             ]);
         }
@@ -151,4 +153,6 @@ class Servico extends Model
     {
         return $this->data_vencimento < now() && $this->status === 'pendente';
     }
+
+    
 }

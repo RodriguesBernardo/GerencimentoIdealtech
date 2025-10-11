@@ -11,7 +11,6 @@ return new class extends Migration
         Schema::create('servicos', function (Blueprint $table) {
             $table->id();
             $table->foreignId('cliente_id')->constrained()->onDelete('cascade');
-            $table->string('nome');
             $table->text('descricao');
             $table->date('data_servico');
             $table->enum('status_pagamento', ['pago', 'nao_pago', 'pendente'])->default('pendente');

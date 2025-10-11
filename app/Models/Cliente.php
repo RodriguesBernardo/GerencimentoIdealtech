@@ -15,7 +15,7 @@ class Cliente extends Model
     protected $fillable = [
         'nome',
         'cpf_cnpj',
-        'whatsapp',
+        'celular', // Alterado de 'whatsapp' para 'celular'
         'email',
         'endereco',
         'observacoes'
