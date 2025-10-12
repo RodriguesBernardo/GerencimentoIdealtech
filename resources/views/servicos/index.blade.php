@@ -6,38 +6,179 @@
 <a href="{{ route('servicos.create') }}" class="btn btn-idealtech-blue">
     <i class="fas fa-plus me-2"></i>Novo Serviço
 </a>
+
+@auth
+    @if(auth()->user()->is_admin)
+    <div class="btn-group">
+        <button type="button" class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
+            <i class="fas fa-download me-2"></i>Exportar
+        </button>
+        <ul class="dropdown-menu">
+            <li>
+                <a class="dropdown-item" href="{{ route('servicos.export.excel', request()->query()) }}">
+                    <i class="fas fa-file-excel text-success me-2"></i>Excel
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item" href="{{ route('servicos.export.pdf', request()->query()) }}">
+                    <i class="fas fa-file-pdf text-danger me-2"></i>PDF
+                </a>
+            </li>
+        </ul>
+    </div>
+    @endif
+@endauth
 @endsection
 
 @section('content')
+<!-- Insights Cards - Apenas para Admin -->
+@auth
+    @if(auth()->user()->is_admin && isset($insights))
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card card-body bg-primary bg-opacity-10 border border-primary border-opacity-25">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h5 class="mb-0">{{ number_format($insights['total_clientes']) }}</h5>
+                        <small class="text-muted">Total de Clientes</small>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-users fa-2x text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card card-body bg-success bg-opacity-10 border border-success border-opacity-25">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h5 class="mb-0">R$ {{ number_format($insights['valor_mes_atual'], 2, ',', '.') }}</h5>
+                        <small class="text-muted">Valor do Mês</small>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-calendar-alt fa-2x text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card card-body bg-info bg-opacity-10 border border-info border-opacity-25">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h5 class="mb-0">R$ {{ number_format($insights['valor_ano_atual'], 2, ',', '.') }}</h5>
+                        <small class="text-muted">Valor do Ano</small>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-chart-line fa-2x text-info"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card card-body bg-warning bg-opacity-10 border border-warning border-opacity-25">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h5 class="mb-0">R$ {{ number_format($insights['total_devedor'], 2, ',', '.') }}</h5>
+                        <small class="text-muted">Total Devedor</small>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards Secundários -->
+    <div class="row mb-4">
+        <div class="col-xl-4 col-md-6">
+            <div class="card card-body bg-success bg-opacity-10 border border-success border-opacity-25">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h5 class="mb-0">R$ {{ number_format($insights['total_pago'], 2, ',', '.') }}</h5>
+                        <small class="text-muted">Total Pago</small>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-check-circle fa-2x text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-4 col-md-6">
+            <div class="card card-body bg-dark bg-opacity-10 border border-dark border-opacity-25">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h5 class="mb-0">R$ {{ number_format($insights['valor_total'], 2, ',', '.') }}</h5>
+                        <small class="text-muted">Valor Total</small>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-dollar-sign fa-2x text-dark"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+@endauth
+
 <div class="card">
     <div class="card-header">
         <h5 class="card-title mb-0">Lista de Serviços</h5>
     </div>
     <div class="card-body">
         <!-- Filtros -->
-        <div class="row mb-4">
-            <div class="col-md-4">
-                <div class="input-group">
-                    <span class="input-group-text"><i class="fas fa-search"></i></span>
-                    <input type="text" class="form-control" placeholder="Buscar por cliente, serviço..." id="searchInput">
+        <form id="filterForm" method="GET" action="{{ route('servicos.index') }}">
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-calendar-start"></i></span>
+                        <input type="date" name="data_inicial" class="form-control" 
+                            value="{{ request('data_inicial', now()->startOfMonth()->format('Y-m-d')) }}">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-calendar-end"></i></span>
+                        <input type="date" name="data_final" class="form-control" 
+                            value="{{ request('data_final', now()->endOfMonth()->format('Y-m-d')) }}">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" name="search" class="form-control" placeholder="Buscar por cliente..." 
+                            value="{{ request('search') }}">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-control" name="status">
+                        <option value="">Todos os status</option>
+                        <option value="pago" {{ request('status') == 'pago' ? 'selected' : '' }}>Pago</option>
+                        <option value="pendente" {{ request('status') == 'pendente' ? 'selected' : '' }}>Pendente</option>
+                        <option value="nao_pago" {{ request('status') == 'nao_pago' ? 'selected' : '' }}>Não Pago</option>
+                    </select>
                 </div>
             </div>
-            <div class="col-md-3">
-                <select class="form-control" id="statusFilter">
-                    <option value="">Todos os status</option>
-                    <option value="pago">Pago</option>
-                    <option value="pendente">Pendente</option>
-                    <!-- <option value="nao_pago">Não Pago</option> -->
-                </select>
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <select class="form-control" name="tipo_pagamento">
+                        <option value="">Todos os tipos</option>
+                        <option value="avista" {{ request('tipo_pagamento') == 'avista' ? 'selected' : '' }}>À Vista</option>
+                        <option value="parcelado" {{ request('tipo_pagamento') == 'parcelado' ? 'selected' : '' }}>Parcelado</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter me-1"></i>Filtrar
+                    </button>
+                </div>
+                <div class="col-md-3">
+                    <a href="{{ route('servicos.index') }}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-times me-1"></i>Limpar
+                    </a>
+                </div>
             </div>
-            <div class="col-md-3">
-                <select class="form-control" id="tipoPagamentoFilter">
-                    <option value="">Todos os tipos</option>
-                    <option value="avista">À Vista</option>
-                    <option value="parcelado">Parcelado</option>
-                </select>
-            </div>
-        </div>
+        </form>
 
         <div class="table-responsive">
             <table class="table table-hover table-striped">
@@ -60,6 +201,7 @@
                             <div class="d-flex align-items-center">
                                 <div class="flex-grow-1">
                                     <strong class="d-block">{{ $servico->cliente->nome }}</strong>
+                                    <small class="text-muted">{{ $servico->cliente->email }}</small>
                                 </div>
                             </div>
                         </td>
@@ -67,11 +209,7 @@
                             <small class="text-muted">{{ Str::limit($servico->descricao, 50) }}</small>
                         </td>
                         <td>
-                            @if(auth()->user()->podeVerValoresCompletos())
-                                <span class="fw-bold text-success">R$ {{ number_format($servico->valor, 2, ',', '.') }}</span>
-                            @else
-                                <span class="text-muted">***</span>
-                            @endif
+                            <span class="fw-bold text-success">R$ {{ number_format($servico->valor, 2, ',', '.') }}</span>
                         </td>
                         <td>
                             <span class="badge {{ $servico->tipo_pagamento == 'avista' ? 'bg-info' : 'bg-secondary' }}">
@@ -310,6 +448,10 @@
     .pagination {
         flex-wrap: wrap;
     }
+    
+    .card-body {
+        position: relative;
+    }
 </style>
 @endpush
 
@@ -328,39 +470,30 @@
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
 
-        // Filtros
+        // Filtro automático
         const searchInput = document.getElementById('searchInput');
         const statusFilter = document.getElementById('statusFilter');
         const tipoPagamentoFilter = document.getElementById('tipoPagamentoFilter');
+        const dataInicial = document.querySelector('input[name="data_inicial"]');
+        const dataFinal = document.querySelector('input[name="data_final"]');
+        const filterForm = document.getElementById('filterForm');
 
         function aplicarFiltros() {
-            const search = searchInput.value.toLowerCase();
-            const status = statusFilter.value;
-            const tipo = tipoPagamentoFilter.value;
-
-            const rows = document.querySelectorAll('tbody tr');
-
-            rows.forEach(row => {
-                if (row.querySelector('.text-center')) return; // Pular linha vazia
-
-                const text = row.textContent.toLowerCase();
-                const rowStatus = row.querySelectorAll('.badge')[1]?.textContent.trim().toLowerCase() || '';
-                const rowTipo = row.querySelectorAll('.badge')[0]?.textContent.toLowerCase() || '';
-
-                const matchSearch = text.includes(search);
-                const matchStatus = !status || rowStatus.includes(status);
-                const matchTipo = !tipo || rowTipo.includes(tipo);
-
-                row.style.display = matchSearch && matchStatus && matchTipo ? '' : 'none';
-            });
+            filterForm.submit();
         }
 
-        searchInput.addEventListener('input', aplicarFiltros);
+        // Busca automática após parar de digitar
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(aplicarFiltros, 800);
+        });
+
+        // Filtros por select e data
         statusFilter.addEventListener('change', aplicarFiltros);
         tipoPagamentoFilter.addEventListener('change', aplicarFiltros);
-
-        // Aplicar filtros inicialmente se houver valores
-        aplicarFiltros();
+        dataInicial.addEventListener('change', aplicarFiltros);
+        dataFinal.addEventListener('change', aplicarFiltros);
     });
 </script>
 @endpush

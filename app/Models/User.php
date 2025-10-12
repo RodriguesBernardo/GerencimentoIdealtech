@@ -49,8 +49,5 @@ class User extends Authenticatable
         return in_array($permissao, $this->permissoes ?? []);
     }
 
-    public function podeVerValoresCompletos()
-    {
-        return $this->is_admin || $this->temPermissao('ver_valores_completos');
-    }
+
 }

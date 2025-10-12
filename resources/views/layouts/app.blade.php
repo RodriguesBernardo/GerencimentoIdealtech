@@ -883,28 +883,6 @@
                 </div>
                 
                 <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="border-radius: 12px; min-width: 200px;">
-                    <li class="px-3 py-2 border-bottom">
-                        <div class="user-name">{{ Auth::user()->name }}</div>
-                        <div class="user-role text-muted small">
-                            @if(Auth::user()->is_admin)
-                                Administrador
-                            @else
-                                Usuário
-                            @endif
-                        </div>
-                    </li>
-                    @if(Auth::user()->is_admin)
-                    <li>
-                        <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="{{ route('admin.dashboard') }}">
-                            <i class="fas fa-cog fa-fw"></i> Painel Admin
-                        </a>
-                    </li>
-                    @endif
-                    <li>
-                        <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#">
-                            <i class="fas fa-user fa-fw"></i> Meu Perfil
-                        </a>
-                    </li>
                     <li><hr class="dropdown-divider my-1"></li>
                     <li>
                         <a class="dropdown-item d-flex align-items-center gap-2 py-2 text-danger" href="{{ route('logout') }}"

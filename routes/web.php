@@ -30,7 +30,10 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('servicos', ServicoController::class);
     Route::post('/servicos/{servico}/update-payment-status', [ServicoController::class, 'updatePaymentStatus'])->name('servicos.update-payment-status');
     Route::post('/servicos/{servico}/marcar-pago', [ServicoController::class, 'marcarPago'])->name('servicos.marcar-pago');
-
+    // Rotas de exportação 
+    Route::get('/servicos/export/excel', [ServicoController::class, 'exportExcel'])->name('servicos.export.excel');
+    Route::get('/servicos/export/pdf', [ServicoController::class, 'exportPdf'])->name('servicos.export.pdf');
+    
     // Parcelas
     Route::post('/parcelas/{parcela}/marcar-paga', [ParcelaController::class, 'marcarPaga'])->name('parcelas.marcar-paga');
     Route::post('/parcelas/{parcela}/marcar-pendente', [ParcelaController::class, 'marcarPendente'])->name('parcelas.marcar-pendente');
