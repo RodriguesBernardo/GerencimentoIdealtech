@@ -152,6 +152,10 @@ class AtendimentoController extends Controller
 
     public function update(Request $request, Atendimento $atendimento)
     {
+        \Log::info('=== UPDATE METHOD CALLED ===');
+        \Log::info('Atendimento ID: ' . $atendimento->id);
+        \Log::info('Request Data:', $request->all());
+
         $request->validate([
             'cliente_id' => 'required|exists:clientes,id',
             'user_id' => 'required|exists:users,id',
@@ -160,12 +164,25 @@ class AtendimentoController extends Controller
             'data_fim' => 'required|date|after:data_inicio'
         ]);
 
-        $atendimento->update($request->all());
+        \Log::info('Validação passou');
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Atendimento atualizado com sucesso!'
-        ]);
+        try {
+            $atendimento->update($request->all());
+            
+            \Log::info('Atendimento atualizado com sucesso');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Atendimento atualizado com sucesso!'
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Erro ao atualizar atendimento: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Erro ao atualizar atendimento: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function destroy(Atendimento $atendimento)

@@ -280,48 +280,34 @@
     <table class="table">
         <thead>
             <tr>
-                <th width="12%">Cliente</th>
-                <th width="18%">Serviço</th>
-                <th width="8%">Valor Total</th>
-                <th width="8%">Valor Pago</th>
-                <th width="8%">Valor Pendente</th>
+                <th width="15%">Cliente</th>
+                <th width="20%">Serviço</th>
+                <th width="8%">Valor</th>
                 <th width="10%">Tipo</th>
                 <th width="10%">Status</th>
                 <th width="10%">Data Serviço</th>
-                <th width="8%">Progresso</th>
+                <th width="12%">Progresso</th>
+                <th width="15%">Observações Gerais</th>
             </tr>
         </thead>
         <tbody>
             @foreach($servicos as $servico)
-            @php
-                // Calcular valores pagos e pendentes para cada serviço
-                if ($servico->tipo_pagamento == 'avista') {
-                    $valorPago = $servico->status_pagamento == 'pago' ? $servico->valor : 0;
-                    $valorPendente = $servico->status_pagamento == 'pago' ? 0 : $servico->valor;
-                } else {
-                    $valorPago = $servico->parcelasServico->where('status', 'paga')->sum('valor_parcela');
-                    $valorPendente = $servico->parcelasServico->where('status', 'pendente')->sum('valor_parcela');
-                }
-                
-                $parcelasPagas = $servico->parcelasServico->where('status', 'paga')->count();
-                $totalParcelas = $servico->parcelasServico->count();
-                $progresso = $totalParcelas > 0 ? ($parcelasPagas / $totalParcelas) * 100 : 0;
-            @endphp
             <tr>
                 <td>
                     <strong>{{ $servico->cliente->nome }}</strong>
+                    <br>
+                    <small style="color: #6c757d;">{{ $servico->cliente->email }}</small>
                 </td>
                 <td>
                     {{ $servico->descricao }}
+                    @if($servico->observacoes)
+<!--                     <div class="observations">
+                        <strong>Obs:</strong> {{ Str::limit($servico->observacoes, 50) }}
+                    </div> -->
+                    @endif
                 </td>
                 <td class="text-right text-bold">
                     R$ {{ number_format($servico->valor, 2, ',', '.') }}
-                </td>
-                <td class="text-right text-success text-bold">
-                    R$ {{ number_format($valorPago, 2, ',', '.') }}
-                </td>
-                <td class="text-right text-danger text-bold">
-                    R$ {{ number_format($valorPendente, 2, ',', '.') }}
                 </td>
                 <td class="text-center">
                     <span class="badge {{ $servico->tipo_pagamento == 'avista' ? 'bg-info' : 'bg-secondary' }}">
@@ -338,20 +324,47 @@
                         @else bg-warning @endif">
                         {{ ucfirst($servico->status_pagamento) }}
                     </span>
+                    @if($servico->observacao_pagamento)
+                    <div class="observations">
+                        {{ Str::limit($servico->observacao_pagamento, 30) }}
+                    </div>
+                    @endif
                 </td>
                 <td class="text-center">
                     {{ $servico->data_servico->format('d/m/Y') }}
                 </td>
-                <td class="text-center">
+                <td>
                     @if($servico->tipo_pagamento == 'parcelado' && $servico->parcelas > 1)
-                        <small>{{ $parcelasPagas }}/{{ $totalParcelas }}</small>
-                        <div class="progress-container">
-                            <div class="progress-bar" style="width: {{ $progresso }}%;">
-                                {{ $progresso > 20 ? (int)$progresso . '%' : '' }}
+                        @php
+                            $parcelasPagas = $servico->parcelasServico->where('status', 'paga')->count();
+                            $totalParcelas = $servico->parcelasServico->count();
+                            $progresso = $totalParcelas > 0 ? ($parcelasPagas / $totalParcelas) * 100 : 0;
+                        @endphp
+                        <div style="text-align: center;">
+                            <small>{{ $parcelasPagas }}/{{ $totalParcelas }} parcelas</small>
+                            <div class="progress-container">
+                                <div class="progress-bar" style="width: {{ $progresso }}%;">
+                                    {{ $progresso > 20 ? (int)$progresso . '%' : '' }}
+                                </div>
                             </div>
+                            <small class="text-bold {{ $progresso == 100 ? 'text-success' : 'text-primary' }}">
+                                {{ (int)$progresso }}%
+                            </small>
                         </div>
                     @else
-                        <span>-</span>
+                        <span class="text-center">-</span>
+                    @endif
+                </td>
+                <td>
+                    @if($servico->observacoes)
+                        {{ $servico->observacoes }}
+                    @else
+                        <span style="color: #6c757d; font-style: italic;">Nenhuma observação</span>
+                    @endif
+                    @if($servico->pago_at && $servico->status_pagamento == 'pago')
+                    <div class="observations">
+                        <strong>Pago em:</strong> {{ $servico->pago_at->format('d/m/Y') }}
+                    </div>
                     @endif
                 </td>
             </tr>
@@ -359,6 +372,7 @@
         </tbody>
     </table>
 
+    
     <!-- Resumo Final -->
     @if(isset($insights) && count($insights) > 0)
     <div class="summary">
@@ -378,10 +392,6 @@
         <div class="summary-item">
             <span>Total Devedor:</span>
             <span class="text-bold text-danger">R$ {{ number_format($insights['total_devedor'], 2, ',', '.') }}</span>
-        </div>
-        <div class="summary-item summary-total">
-            <span>Saldo do Período:</span>
-            <span class="text-bold">R$ {{ number_format($insights['valor_mes_atual'], 2, ',', '.') }}</span>
         </div>
     </div>
     @endif

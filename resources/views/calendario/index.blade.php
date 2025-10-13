@@ -457,33 +457,57 @@ function formatDateTimeForInput(date) {
 }
 
 function saveAtendimento() {
-    const formData = new FormData(document.getElementById('atendimentoForm'));
     const atendimentoId = $('#atendimentoId').val();
-    const url = atendimentoId ? '/atendimentos/' + atendimentoId : '/atendimentos'; // CORRIGIDO - com barra no início
+    const url = atendimentoId ? '/atendimentos/' + atendimentoId : '/atendimentos';
     const method = atendimentoId ? 'PUT' : 'POST';
+
+    // Coletar dados do formulário
+    const formData = {
+        cliente_id: $('#cliente_id').val(),
+        user_id: $('#user_id').val(),
+        titulo: $('#titulo').val(),
+        descricao: $('#descricao').val(),
+        data_inicio: $('#data_inicio').val(),
+        data_fim: $('#data_fim').val(),
+        status: $('#status').val(),
+        tipo: $('#tipo').val(),
+        local: $('#local').val(),
+        observacoes: $('#observacoes').val(),
+        cor: $('#cor').val(),
+        _method: method === 'PUT' ? 'PUT' : 'POST' // Para simular PUT com FormData se necessário
+    };
 
     // Mostrar loading no botão
     const submitButton = $('#atendimentoForm').find('button[type="submit"]');
     const originalText = submitButton.html();
     submitButton.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Salvando...');
 
+    // DEBUG: Mostrar dados no console
+    console.log('Enviando dados:', formData);
+    console.log('URL:', url);
+    console.log('Método:', method);
+
     fetch(url, {
-        method: method,
+        method: method === 'PUT' ? 'POST' : 'POST', // Usar POST e simular PUT com _method
         headers: {
             'X-CSRF-TOKEN': '{{ csrf_token() }}',
             'Accept': 'application/json',
+            'Content-Type': 'application/json',
         },
-        body: formData
+        body: JSON.stringify(formData)
     })
     .then(response => {
+        console.log('Status da resposta:', response.status);
         if (!response.ok) {
             return response.json().then(errorData => {
-                throw new Error(errorData.message || 'Erro ao salvar atendimento');
+                console.error('Erro detalhado:', errorData);
+                throw new Error(errorData.message || JSON.stringify(errorData.errors) || 'Erro ao salvar atendimento');
             });
         }
         return response.json();
     })
     .then(data => {
+        console.log('Resposta sucesso:', data);
         if (data.success) {
             $('#atendimentoModal').modal('hide');
             showToast(data.message, 'success');
@@ -496,7 +520,7 @@ function saveAtendimento() {
         }
     })
     .catch(error => {
-        console.error('Erro:', error);
+        console.error('Erro completo:', error);
         showToast(error.message, 'error');
     })
     .finally(() => {
