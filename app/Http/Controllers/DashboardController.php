@@ -1,11 +1,11 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Servico;
 use App\Models\Cliente;
 use App\Models\Parcela;
+use App\Models\Atendimento;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -13,11 +13,14 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // Foco em cobranças - removendo totais gerais
+        // Foco em cobranças
         $clientesParaCobrar = $this->getClientesParaCobrar();
         $parcelasVencidas = $this->getParcelasVencidas();
         $parcelasAVencer = $this->getParcelasAVencer();
         $servicosPendentes = $this->getServicosPendentes();
+
+        // Novos dados: Próximos eventos da agenda
+        $proximosEventos = $this->getProximosEventos();
 
         // Estatísticas focadas em cobranças
         $estatisticasCobranca = [
@@ -36,6 +39,7 @@ class DashboardController extends Controller
             'parcelasVencidas',
             'parcelasAVencer',
             'servicosPendentes',
+            'proximosEventos',
             'estatisticasCobranca',
             'progressaoMensal'
         ));
@@ -112,6 +116,30 @@ class DashboardController extends Controller
     }
 
     /**
+     * Próximos eventos da agenda (próximos 7 dias)
+     */
+    private function getProximosEventos()
+    {
+        return Atendimento::with(['cliente', 'user'])
+            ->where('data_inicio', '>=', now())
+            ->where('data_inicio', '<=', now()->addDays(7))
+            ->orderBy('data_inicio')
+            ->take(8)
+            ->get()
+            ->map(function($evento) {
+                // Adicionar informações formatadas
+                $evento->data_formatada = $evento->data_inicio->format('d/m/Y');
+                $evento->hora_formatada = $evento->data_inicio->format('H:i');
+                
+                // Calcular dias restantes arredondados
+                $diasRestantes = now()->startOfDay()->diffInDays($evento->data_inicio->startOfDay(), false);
+                $evento->dias_restantes = $diasRestantes >= 0 ? $diasRestantes : 0;
+                
+                return $evento;
+            });
+    }
+
+    /**
      * Total de clientes com pendências
      */
     private function getTotalClientesComPendencia()
@@ -152,7 +180,7 @@ class DashboardController extends Controller
 
         for ($i = 5; $i >= 0; $i--) {
             $mes = now()->subMonths($i);
-            $mesFormatado = $mes->translatedFormat('M/Y'); // Formato em português
+            $mesFormatado = $mes->translatedFormat('M/Y');
             
             $total = Servico::whereMonth('created_at', $mes->month)
                 ->whereYear('created_at', $mes->year)

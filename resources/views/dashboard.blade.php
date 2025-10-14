@@ -145,6 +145,58 @@
                 </div>
             </div>
         </div>
+
+        <!-- Próximos Eventos -->
+        <div class="card">
+            <div class="card-header bg-primary bg-opacity-10">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-calendar-day text-primary me-2"></i>
+                    Próximos Eventos
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    @forelse($proximosEventos as $evento)
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">{{ $evento->titulo }}</h6>
+                                <small class="text-muted">
+                                    <i class="fas fa-user me-1"></i>{{ $evento->cliente->nome ?? 'N/A' }}
+                                </small>
+                                <br>
+                                <small class="text-muted">
+                                    <i class="fas fa-clock me-1"></i>{{ $evento->data_formatada }} às {{ $evento->hora_formatada }}
+                                </small>
+                                @if($evento->dias_restantes == 0)
+                                    <span class="badge bg-success ms-2">Hoje</span>
+                                @elseif($evento->dias_restantes == 1)
+                                    <span class="badge bg-info ms-2">Amanhã</span>
+                                @else
+                                    <span class="badge bg-secondary ms-2">{{ $evento->dias_restantes }} dias</span>
+                                @endif
+                            </div>
+                            <div class="flex-shrink-0">
+                                <span class="badge" style="background-color: {{ $evento->cor }}">{{ ucfirst($evento->status) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    @empty
+                    <div class="list-group-item text-center text-muted py-4">
+                        <i class="fas fa-calendar-times fa-2x mb-2"></i>
+                        <p class="mb-0">Nenhum evento agendado<br>para os próximos dias</p>
+                    </div>
+                    @endforelse
+                </div>
+                @if($proximosEventos->count() > 0)
+                <div class="card-footer text-center">
+                    <a href="{{ route('atendimentos.index') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-calendar-alt me-1"></i>Ver Agenda Completa
+                    </a>
+                </div>
+                @endif
+            </div>
+        </div>
     </div>
 </div>
 
@@ -489,6 +541,15 @@
     .table th {
         border-top: none;
         font-weight: 600;
+    }
+    
+    .list-group-item {
+        border: none;
+        padding: 1rem;
+    }
+    
+    .list-group-item:not(:last-child) {
+        border-bottom: 1px solid #dee2e6 !important;
     }
 </style>
 @endpush

@@ -15,4 +15,8 @@ class AuthServiceProvider extends ServiceProvider
             return $user->is_admin == 1;
         });
     }
+
+    protected $policies = [
+        SystemLog::class => SystemLogPolicy::class,
+    ];
 }

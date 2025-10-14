@@ -950,6 +950,12 @@
                         <span class="nav-link-text">Relatórios</span>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.logs.index') }}" class="nav-link {{ Request::is('admin/logs*') ? 'active' : '' }}">
+                        <i class="fas fa-history"></i>
+                        <span class="nav-link-text">Logs do Sistema</span>
+                    </a>
+                </li>
                 @endif
             @endauth
         </ul>

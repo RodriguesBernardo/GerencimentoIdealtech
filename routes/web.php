@@ -8,6 +8,7 @@ use App\Http\Controllers\ParcelaController;
 use App\Http\Controllers\AtendimentoController; 
 use App\Http\Controllers\Admin\UsuarioController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Admin\LogController;
 
 // Rotas de autenticação
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
@@ -58,4 +59,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'check.admin'])->gro
     Route::get('/relatorios', [DashboardController::class, 'relatorios'])->name('relatorios.index');
     Route::post('/relatorios/dados', [DashboardController::class, 'relatoriosDados'])->name('relatorios.dados');
     Route::post('/relatorios/exportar', [DashboardController::class, 'exportarRelatorio'])->name('relatorios.exportar');
+
+    // Rotas de Logs do Sistema
+    Route::get('/logs', [LogController::class, 'index'])->name('logs.index');
+    Route::get('/logs/{log}', [LogController::class, 'show'])->name('logs.show');
+    Route::get('/logs/export', [LogController::class, 'export'])->name('logs.export');
 });
