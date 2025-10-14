@@ -3,12 +3,15 @@
 @section('title', 'Serviços')
 
 @section('header-actions')
-<a href="{{ route('servicos.create') }}" class="btn btn-idealtech-blue">
-    <i class="fas fa-plus me-2"></i>Novo Serviço
-</a>
+{{-- Botão Novo Serviço - apenas para usuários com permissão --}}
+@if(auth()->user()->is_admin || in_array('servicos.create', auth()->user()->permissoes ?? []))
+    <a href="{{ route('servicos.create') }}" class="btn btn-idealtech-blue">
+        <i class="fas fa-plus me-2"></i>Novo Serviço
+    </a>
+@endif
 
 @auth
-    @if(auth()->user()->is_admin)
+    @if(auth()->user()->is_admin || in_array('relatorios.view', auth()->user()->permissoes ?? []))
     <div class="btn-group">
         <button type="button" class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
             <i class="fas fa-download me-2"></i>Exportar
@@ -31,9 +34,9 @@
 @endsection
 
 @section('content')
-<!-- Insights Cards - Apenas para Admin -->
+<!-- Insights Cards - Apenas para Admin ou usuários com permissão de relatórios -->
 @auth
-    @if(auth()->user()->is_admin && isset($insights))
+    @if((auth()->user()->is_admin || in_array('relatorios.view', auth()->user()->permissoes ?? [])) && isset($insights))
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6">
             <div class="card card-body bg-primary bg-opacity-10 border border-primary border-opacity-25">
@@ -182,7 +185,7 @@
 
         <div class="table-responsive">
             <table class="table table-hover table-striped">
-                <thead class="table-light">
+                <thead class="">
                     <tr>
                         <th width="15%">Cliente</th>
                         <th width="20%">Serviço</th>
@@ -271,23 +274,34 @@
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm">
-                                <a href="{{ route('servicos.show', $servico) }}" class="btn btn-outline-primary" 
-                                   data-bs-toggle="tooltip" title="Ver detalhes">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <a href="{{ route('servicos.edit', $servico) }}" class="btn btn-outline-secondary"
-                                   data-bs-toggle="tooltip" title="Editar">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <form action="{{ route('servicos.destroy', $servico) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-outline-danger"
-                                            data-bs-toggle="tooltip" title="Excluir"
-                                            onclick="return confirm('Tem certeza que deseja excluir este serviço?')">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
+                                {{-- Ver detalhes - disponível para todos com permissão de visualização --}}
+                                @if(auth()->user()->is_admin || in_array('servicos.view', auth()->user()->permissoes ?? []))
+                                    <a href="{{ route('servicos.show', $servico) }}" class="btn btn-outline-primary" 
+                                    data-bs-toggle="tooltip" title="Ver detalhes">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                @endif
+                                
+                                {{-- Editar - apenas com permissão --}}
+                                @if(auth()->user()->is_admin || in_array('servicos.edit', auth()->user()->permissoes ?? []))
+                                    <a href="{{ route('servicos.edit', $servico) }}" class="btn btn-outline-secondary"
+                                    data-bs-toggle="tooltip" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                @endif
+                                
+                                {{-- Deletar - apenas com permissão --}}
+                                @if(auth()->user()->is_admin || in_array('servicos.delete', auth()->user()->permissoes ?? []))
+                                    <form action="{{ route('servicos.destroy', $servico) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-outline-danger"
+                                                data-bs-toggle="tooltip" title="Excluir"
+                                                onclick="return confirm('Tem certeza que deseja excluir este serviço?')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                @endif
                             </div>
                         </td>
                     </tr>
@@ -471,9 +485,9 @@
         });
 
         // Filtro automático
-        const searchInput = document.getElementById('searchInput');
-        const statusFilter = document.getElementById('statusFilter');
-        const tipoPagamentoFilter = document.getElementById('tipoPagamentoFilter');
+        const searchInput = document.querySelector('input[name="search"]');
+        const statusFilter = document.querySelector('select[name="status"]');
+        const tipoPagamentoFilter = document.querySelector('select[name="tipo_pagamento"]');
         const dataInicial = document.querySelector('input[name="data_inicial"]');
         const dataFinal = document.querySelector('input[name="data_final"]');
         const filterForm = document.getElementById('filterForm');
@@ -484,16 +498,18 @@
 
         // Busca automática após parar de digitar
         let searchTimeout;
-        searchInput.addEventListener('input', function() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(aplicarFiltros, 800);
-        });
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(aplicarFiltros, 800);
+            });
+        }
 
         // Filtros por select e data
-        statusFilter.addEventListener('change', aplicarFiltros);
-        tipoPagamentoFilter.addEventListener('change', aplicarFiltros);
-        dataInicial.addEventListener('change', aplicarFiltros);
-        dataFinal.addEventListener('change', aplicarFiltros);
+        if (statusFilter) statusFilter.addEventListener('change', aplicarFiltros);
+        if (tipoPagamentoFilter) tipoPagamentoFilter.addEventListener('change', aplicarFiltros);
+        if (dataInicial) dataInicial.addEventListener('change', aplicarFiltros);
+        if (dataFinal) dataFinal.addEventListener('change', aplicarFiltros);
     });
 </script>
 @endpush

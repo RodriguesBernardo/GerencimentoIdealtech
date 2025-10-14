@@ -198,15 +198,26 @@ class DashboardController extends Controller
 
     public function relatorios()
     {
-        // Dados padrão para o período atual
         $periodo = request('periodo', 'mes_atual');
         $dataInicio = $this->getDataInicioPorPeriodo($periodo);
         $dataFim = now()->format('Y-m-d');
         
-        // Dados para os gráficos prontos
         $dadosRelatorios = $this->getDadosRelatorios($dataInicio, $dataFim);
         
-        return view('admin.relatorios.index', compact('dadosRelatorios', 'periodo'));
+        // Adicione estas variáveis para a view
+        $periodoLabel = $this->getPeriodoLabel($periodo);
+        $statusColors = [
+            'pago' => '#10B981',
+            'pendente' => '#F59E0B', 
+            'nao_pago' => '#EF4444',
+        ];
+        
+        return view('admin.relatorios.index', compact(
+            'dadosRelatorios', 
+            'periodo',
+            'periodoLabel',
+            'statusColors'
+        ));
     }
 
     private function getDataInicioPorPeriodo($periodo)
@@ -591,5 +602,66 @@ class DashboardController extends Controller
         }
         
         return implode("\n", $lines);
+    }
+public function getPeriodoLabel($periodo)
+    {
+        return match($periodo) {
+            'semana_atual' => 'Semana Atual',
+            'mes_atual' => 'Mês Atual',
+            'mes_anterior' => 'Mês Anterior',
+            'trimestre_atual' => 'Trimestre Atual',
+            'semestre_atual' => 'Semestre Atual',
+            'ano_atual' => 'Ano Atual',
+            default => 'Mês Atual'
+        };
+    }
+
+    /**
+     * Retorna a cor do status para os gráficos
+     */
+    public function getStatusColor($status)
+    {
+        return match(strtolower($status)) {
+            'pago' => '#10B981',
+            'pendente' => '#F59E0B',
+            'nao pago' => '#EF4444',
+            'nao_pago' => '#EF4444',
+            default => '#6B7280'
+        };
+    }
+
+    /**
+     * Retorna a cor do badge para os status
+     */
+    public function getStatusBadgeColor($status)
+    {
+        return match($status) {
+            'pago' => 'success',
+            'pendente' => 'warning',
+            'nao_pago' => 'danger',
+            default => 'secondary'
+        };
+    }
+
+    /**
+     * Método auxiliar para preparar dados da view
+     */
+    private function prepareViewData($periodo)
+    {
+        $dataInicio = $this->getDataInicioPorPeriodo($periodo);
+        $dataFim = now()->format('Y-m-d');
+        
+        $dadosRelatorios = $this->getDadosRelatorios($dataInicio, $dataFim);
+        
+        return [
+            'dadosRelatorios' => $dadosRelatorios,
+            'periodo' => $periodo,
+            'periodoLabel' => $this->getPeriodoLabel($periodo),
+            'statusColors' => [
+                'pago' => $this->getStatusColor('pago'),
+                'pendente' => $this->getStatusColor('pendente'),
+                'nao_pago' => $this->getStatusColor('nao_pago'),
+            ]
+        ];
     }
 }

@@ -149,9 +149,6 @@
             margin-bottom: 0;
         }
         
-        .table > :not(caption) > * > * {
-            background-color: transparent !important;
-        }
         
         /* Sidebar Styles */
         .app-sidebar {
@@ -830,6 +827,13 @@
     color: var(--danger-500) !important;
 }
 
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    padding: 0;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--bs-body-color) !important;
+}
+
     </style>
     
     @stack('styles')
@@ -915,19 +919,28 @@
             </li>
             
             <li class="nav-section">GERENCIAMENTO</li>
+            
+            {{-- Clientes - apenas para usuários com permissão --}}
+            @if(auth()->user()->is_admin || in_array('clientes.view', auth()->user()->permissoes ?? []))
             <li class="nav-item">
                 <a href="{{ route('clientes.index') }}" class="nav-link {{ Request::is('clientes*') ? 'active' : '' }}">
                     <i class="fas fa-users"></i>
                     <span class="nav-link-text">Clientes</span>
                 </a>
             </li>
+            @endif
+            
+            {{-- Serviços - apenas para usuários com permissão --}}
+            @if(auth()->user()->is_admin || in_array('servicos.view', auth()->user()->permissoes ?? []))
             <li class="nav-item">
                 <a href="{{ route('servicos.index') }}" class="nav-link {{ Request::is('servicos*') ? 'active' : '' }}">
                     <i class="fas fa-tools"></i>
                     <span class="nav-link-text">Serviços</span>
                 </a>
             </li>
+            @endif
 
+            {{-- Agenda - disponível para todos os usuários logados --}}
             <li class="nav-item">
                 <a href="{{ route('atendimentos.index') }}" class="nav-link {{ Request::is('atendimentos*') ? 'active' : '' }}">
                     <i class="fas fa-calendar-alt"></i>
@@ -935,21 +948,32 @@
                 </a>
             </li>
             
-            @auth
-                @if(Auth::user()->is_admin)
-                <li class="nav-section">ADMINISTRAÇÃO</li>
+            {{-- Seção de Administração - apenas para admin ou usuários com permissões administrativas --}}
+            @if(auth()->user()->is_admin || in_array('usuarios.view', auth()->user()->permissoes ?? []) || in_array('relatorios.view', auth()->user()->permissoes ?? []))
+            <li class="nav-section">ADMINISTRAÇÃO</li>
+            
+                {{-- Usuários - apenas para admin ou usuários com permissão de gerenciar usuários --}}
+                @if(auth()->user()->is_admin || in_array('usuarios.manage', auth()->user()->permissoes ?? []))
                 <li class="nav-item">
                     <a href="{{ route('admin.usuarios.index') }}" class="nav-link {{ Request::is('admin/usuarios*') ? 'active' : '' }}">
                         <i class="fas fa-user-cog"></i>
                         <span class="nav-link-text">Usuários</span>
                     </a>
                 </li>
+                @endif
+                
+                {{-- Relatórios - apenas para admin ou usuários com permissão de relatórios --}}
+                @if(auth()->user()->is_admin || in_array('relatorios.view', auth()->user()->permissoes ?? []))
                 <li class="nav-item">
                     <a href="{{ route('admin.relatorios.index') }}" class="nav-link {{ Request::is('admin/relatorios*') ? 'active' : '' }}">
                         <i class="fas fa-chart-bar"></i>
                         <span class="nav-link-text">Relatórios</span>
                     </a>
                 </li>
+                @endif
+                
+                {{-- Logs - apenas para administradores --}}
+                @if(auth()->user()->is_admin)
                 <li class="nav-item">
                     <a href="{{ route('admin.logs.index') }}" class="nav-link {{ Request::is('admin/logs*') ? 'active' : '' }}">
                         <i class="fas fa-history"></i>
@@ -957,7 +981,7 @@
                     </a>
                 </li>
                 @endif
-            @endauth
+            @endif
         </ul>
     </aside>
 

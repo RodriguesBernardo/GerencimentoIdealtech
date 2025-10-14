@@ -381,10 +381,6 @@
             }
 
             var selectionText = cliente.nome;
-            if (cliente.cpf_cnpj) {
-                selectionText += ' - ' + cliente.cpf_cnpj;
-            }
-            
             return selectionText;
         }
     });

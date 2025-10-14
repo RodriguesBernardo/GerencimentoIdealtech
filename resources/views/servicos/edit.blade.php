@@ -203,7 +203,11 @@
 @push('scripts')
 <script>
     $(document).ready(function() {
-        // Inicializa o Select2 primeiro
+        // Verifica se há um cliente selecionado
+        const selectedClienteId = $('.select2-cliente').val();
+        const selectedClienteText = $('.select2-cliente option:selected').text();
+        
+        // Inicializa o Select2
         $('.select2-cliente').select2({
             theme: 'bootstrap-5',
             language: 'pt-BR',
@@ -222,7 +226,6 @@
                 },
                 processResults: function (data, params) {
                     params.page = params.page || 1;
-
                     return {
                         results: data.data,
                         pagination: {
@@ -253,14 +256,55 @@
                     return cliente.text;
                 }
 
-                var selectionText = cliente.nome;
-                if (cliente.cpf_cnpj) {
-                    selectionText += ' - ' + cliente.cpf_cnpj;
+                if (cliente.nome) {
+                    return cliente.nome;
                 }
-                
-                return selectionText;
+                // Se for da opção HTML inicial, extrai apenas o nome
+                else if (cliente.text && cliente.text.includes(' - ')) {
+                    return cliente.text.split(' - ')[0];
+                }
+                else {
+                    return cliente.text;
+                }
             }
         });
+
+        setTimeout(function() {
+            const option = $('.select2-cliente').find('option:selected');
+            if (option.length > 0 && option.text().includes(' - ')) {
+                const apenasNome = option.text().split(' - ')[0];
+                option.text(apenasNome);
+                $('.select2-cliente').trigger('change.select2');
+            }
+        }, 100);
+
+        setTimeout(function() {
+            if (selectedClienteId && !$('.select2-cliente').select2('data')[0]) {
+                $.ajax({
+                    url: '{{ route('clientes.search-ajax') }}',
+                    data: {
+                        specific_id: selectedClienteId
+                    },
+                    dataType: 'json',
+                    success: function (data) {
+                        if (data.data && data.data.length > 0) {
+                            const cliente = data.data[0];
+                            const option = $('.select2-cliente').find('option[value="' + selectedClienteId + '"]');
+                            if (option.length > 0) {
+                                option.text(cliente.nome);
+                                option.attr('data-nome', cliente.nome);
+                                option.attr('data-cpf_cnpj', cliente.cpf_cnpj);
+                                $('.select2-cliente').val(selectedClienteId).trigger('change.select2');
+                                console.log('Cliente carregado com sucesso - Nome:', cliente.nome);
+                            }
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Erro ao buscar cliente:', error);
+                    }
+                });
+            }
+        }, 500);
 
         // Limpar seleção quando o usuário clicar no "x"
         $('.select2-cliente').on('select2:unselecting', function() {
@@ -272,13 +316,12 @@
             }
         });
 
-        // Força o Select2 a reconhecer o valor selecionado
-        setTimeout(function() {
-            $('.select2-cliente').trigger('change.select2');
-        }, 100);
+        // Debug quando o Select2 muda
+        $('.select2-cliente').on('change', function() {
+            console.log('Select2 change - Valor:', $(this).val());
+            console.log('Select2 change - Dados:', $(this).select2('data'));
+        });
     });
-
-    // Mantém o resto do seu código JavaScript original
     document.addEventListener('DOMContentLoaded', function() {
         const statusPagamento = document.getElementById('status_pagamento');
         const pagoAt = document.getElementById('pago_at');
