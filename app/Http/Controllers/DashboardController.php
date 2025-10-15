@@ -343,7 +343,7 @@ class DashboardController extends Controller
             $q->whereBetween('data_servico', [$dataInicio, $dataFim]);
         }])
         ->orderBy('servicos_sum_valor', 'desc')
-        ->limit(8)
+        ->limit(10)
         ->get();
 
         return [

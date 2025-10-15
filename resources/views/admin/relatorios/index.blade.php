@@ -183,12 +183,12 @@
     <!-- Segunda Linha de Gráficos -->
     <div class="row mb-4">
         <!-- Top Clientes -->
-        <div class="col-xl-6 mb-4">
+        <div class="col-xl-12 mb-3">
             <div class="card shadow-sm border-0" style="height: 350px;">
                 <div class="card-header bg-transparent border-0 py-3">
                     <h5 class="card-title mb-0">
                         <i class="fas fa-users text-info me-2"></i>
-                        Top 8 Clientes (Por Faturamento)
+                        Top 10 Clientes (Por Faturamento)
                     </h5>
                 </div>
                 <div class="card-body" style="height: 270px; padding: 1rem;">
@@ -198,7 +198,7 @@
         </div>
 
         <!-- Serviços Mais Comuns -->
-        <div class="col-xl-6 mb-4">
+        <!-- <div class="col-xl-6 mb-4">
             <div class="card shadow-sm border-0" style="height: 350px;">
                 <div class="card-header bg-transparent border-0 py-3">
                     <h5 class="card-title mb-0">
@@ -210,7 +210,7 @@
                     <canvas id="graficoServicosComuns"></canvas>
                 </div>
             </div>
-        </div>
+        </div> -->
     </div>
 
     <!-- Terceira Linha - Métricas Avançadas -->
