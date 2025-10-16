@@ -34,7 +34,11 @@ Route::middleware(['auth'])->group(function () {
     // Rotas de exportação 
     Route::get('/servicos/export/excel', [ServicoController::class, 'exportExcel'])->name('servicos.export.excel');
     Route::get('/servicos/export/pdf', [ServicoController::class, 'exportPdf'])->name('servicos.export.pdf');
-    
+    // Rotas para anexos de serviços
+    Route::get('servicos/{servico}/anexos/{anexo}/download', [ServicoController::class, 'downloadAnexo'])->name('servicos.anexos.download');
+    Route::delete('servicos/{servico}/anexos/{anexo}', [ServicoController::class, 'destroyAnexo'])->name('servicos.anexos.destroy');
+
+
     // Parcelas
     Route::post('/parcelas/{parcela}/marcar-paga', [ParcelaController::class, 'marcarPaga'])->name('parcelas.marcar-paga');
     Route::post('/parcelas/{parcela}/marcar-pendente', [ParcelaController::class, 'marcarPendente'])->name('parcelas.marcar-pendente');

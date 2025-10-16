@@ -176,6 +176,42 @@
                 @enderror
             </div>
 
+            <!-- Seção de Anexos -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">Anexos (Máximo: 5 arquivos)</h6>
+                </div>
+                <div class="card-body">
+                    <div id="anexos-container">
+                        <div class="anexo-item mb-3">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label">Arquivo</label>
+                                    <input type="file" class="form-control" name="anexos[]">
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label">Descrição (opcional)</label>
+                                    <input type="text" class="form-control" name="descricoes_anexos[]" placeholder="Descrição do arquivo">
+                                </div>
+                                <div class="col-md-1 d-flex align-items-end">
+                                    <button type="button" class="btn btn-danger btn-remover-anexo" style="display: none;">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="btn-adicionar-anexo">
+                        <i class="fas fa-plus me-1"></i>Adicionar outro arquivo
+                    </button>
+                    
+                    <div class="form-text">
+                        Formatos aceitos: todos os tipos de arquivo. Tamanho máximo por arquivo: 10MB.
+                    </div>
+                </div>
+            </div>
+
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-idealtech-blue">
                     <i class="fas fa-save me-2"></i>Salvar Serviço
@@ -190,212 +226,78 @@
 
 @push('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const statusPagamento = document.getElementById('status_pagamento');
-        const pagoAt = document.getElementById('pago_at');
-        const tipoPagamento = document.getElementById('tipo_pagamento');
-        const parcelamentoFields = document.getElementById('parcelamento_fields');
-        const parcelasInput = document.getElementById('parcelas');
-        const valorInput = document.getElementById('valor');
-        const dataPrimeiroVencimento = document.getElementById('data_primeiro_vencimento');
-        const parcelaInfo = document.getElementById('parcela_info');
-        const datasParcelasContainer = document.getElementById('datas_parcelas_container');
-        const datasParcelasFields = document.getElementById('datas_parcelas_fields');
+document.addEventListener('DOMContentLoaded', function() {
+    const anexosContainer = document.getElementById('anexos-container');
+    const btnAdicionarAnexo = document.getElementById('btn-adicionar-anexo');
+    const maxAnexos = 5;
 
-        function togglePagoAtField() {
-            if (statusPagamento.value === 'pago') {
-                pagoAt.disabled = false;
-                if (!pagoAt.value) {
-                    const now = new Date();
-                    pagoAt.value = now.toISOString().slice(0, 16);
-                }
-            } else {
-                pagoAt.disabled = true;
-                pagoAt.value = '';
-            }
-        }
-
-        function toggleParcelamentoFields() {
-            if (tipoPagamento.value === 'parcelado') {
-                parcelamentoFields.style.display = 'block';
-                calcularParcelas();
-                gerarCamposDatasParcelas();
-            } else {
-                parcelamentoFields.style.display = 'none';
-                parcelaInfo.innerHTML = '';
-                datasParcelasContainer.style.display = 'none';
-            }
-        }
-
-        function gerarCamposDatasParcelas() {
-            const numParcelas = parseInt(parcelasInput.value) || 2;
-            
-            if (numParcelas > 1) {
-                datasParcelasContainer.style.display = 'block';
-                datasParcelasFields.innerHTML = '';
-                
-                for (let i = 2; i <= numParcelas; i++) {
-                    const dataBase = dataPrimeiroVencimento.value ? new Date(dataPrimeiroVencimento.value) : new Date();
-                    const dataSugerida = new Date(dataBase);
-                    dataSugerida.setMonth(dataSugerida.getMonth() + (i - 1));
-                    
-                    const dataSugeridaStr = dataSugerida.toISOString().split('T')[0];
-                    
-                    const div = document.createElement('div');
-                    div.className = 'col-md-4 mb-2';
-                    div.innerHTML = `
-                        <label for="datas_parcelas_${i}" class="form-label small">Parcela ${i}</label>
-                        <input type="date" class="form-control form-control-sm" 
-                               id="datas_parcelas_${i}" 
-                               name="datas_parcelas[${i}]" 
-                               value="${dataSugeridaStr}">
-                    `;
-                    datasParcelasFields.appendChild(div);
-                }
-            } else {
-                datasParcelasContainer.style.display = 'none';
-            }
-        }
-
-        function calcularParcelas() {
-            const valor = parseFloat(valorInput.value) || 0;
-            const numParcelas = parseInt(parcelasInput.value) || 2;
-            const primeiraData = dataPrimeiroVencimento.value;
-            
-            if (valor > 0 && numParcelas > 1 && primeiraData) {
-                const valorParcela = valor / numParcelas;
-                let infoHTML = `
-                    <strong>Resumo das Parcelas:</strong><br>
-                    • Total: R$ ${valor.toFixed(2).replace('.', ',')}<br>
-                    • ${numParcelas} parcelas de R$ ${valorParcela.toFixed(2).replace('.', ',')}<br>
-                    • Primeira parcela: ${formatarData(primeiraData)}
-                `;
-                
-                // Adiciona informações das demais parcelas
-                for (let i = 2; i <= numParcelas; i++) {
-                    const inputData = document.getElementById(`datas_parcelas_${i}`);
-                    const dataParcela = inputData ? inputData.value : calcularDataMensal(primeiraData, i-1);
-                    infoHTML += `<br>• Parcela ${i}: ${formatarData(dataParcela)}`;
-                }
-                
-                parcelaInfo.innerHTML = infoHTML;
-            } else {
-                parcelaInfo.innerHTML = 'Informe o valor total, número de parcelas e primeira data de vencimento para ver o resumo.';
-            }
-        }
-
-        function formatarData(dataString) {
-            if (!dataString) return 'Não definida';
-            const data = new Date(dataString);
-            return data.toLocaleDateString('pt-BR');
-        }
-
-        function calcularDataMensal(dataBase, meses) {
-            const data = new Date(dataBase);
-            data.setMonth(data.getMonth() + meses);
-            return data.toISOString().split('T')[0];
-        }
-
-        // Inicializa os campos
-        togglePagoAtField();
-        toggleParcelamentoFields();
-
-        // Event listeners
-        statusPagamento.addEventListener('change', togglePagoAtField);
-        tipoPagamento.addEventListener('change', toggleParcelamentoFields);
-        valorInput.addEventListener('input', calcularParcelas);
-        parcelasInput.addEventListener('input', function() {
-            gerarCamposDatasParcelas();
-            calcularParcelas();
-        });
-        dataPrimeiroVencimento.addEventListener('change', function() {
-            gerarCamposDatasParcelas();
-            calcularParcelas();
+    function atualizarBotoesRemover() {
+        const botoesRemover = document.querySelectorAll('.btn-remover-anexo');
+        botoesRemover.forEach((btn, index) => {
+            // Mostra o botão remover apenas se houver mais de um anexo
+            btn.style.display = botoesRemover.length > 1 ? 'block' : 'none';
         });
 
-        // Delegation para os campos de data dinâmicos
-        datasParcelasFields.addEventListener('change', function(e) {
-            if (e.target.name.startsWith('datas_parcelas')) {
-                calcularParcelas();
-            }
-        });
-    });
-
-    // Formata o valor para aceitar casas decimais
-    const valorInput = document.getElementById('valor');
-    if (valorInput) {
-        valorInput.addEventListener('blur', function() {
-            if (this.value) {
-                this.value = parseFloat(this.value).toFixed(2);
-            }
-        });
+        // Desabilita o botão de adicionar se atingiu o limite
+        const anexosAtuais = document.querySelectorAll('.anexo-item').length;
+        const anexosExistentes = {{ isset($servico) ? $servico->anexos->count() : 0 }};
+        const totalAnexos = anexosAtuais + anexosExistentes;
+        
+        btnAdicionarAnexo.disabled = totalAnexos >= maxAnexos;
+        if (totalAnexos >= maxAnexos) {
+            btnAdicionarAnexo.innerHTML = '<i class="fas fa-ban me-1"></i>Limite de anexos atingido';
+            btnAdicionarAnexo.classList.add('btn-secondary');
+            btnAdicionarAnexo.classList.remove('btn-outline-primary');
+        }
     }
-    $(document).ready(function() {
-    $('.select2-cliente').select2({
-        theme: 'bootstrap-5',
-        language: 'pt-BR',
-        placeholder: 'Digite o nome ou CPF/CNPJ do cliente...',
-        allowClear: true,
-        width: '100%',
-        ajax: {
-            url: '{{ route('clientes.search-ajax') }}',
-            dataType: 'json',
-            delay: 300,
-            data: function (params) {
-                return {
-                    search: params.term,
-                    page: params.page || 1
-                };
-            },
-            processResults: function (data, params) {
-                params.page = params.page || 1;
 
-                return {
-                    results: data.data,
-                    pagination: {
-                        more: (params.page * 10) < data.total
-                    }
-                };
-            },
-            cache: true
-        },
-        minimumInputLength: 2,
-        templateResult: function (cliente) {
-            if (cliente.loading) {
-                return cliente.text;
-            }
+    function adicionarCampoAnexo() {
+        const novoAnexo = document.createElement('div');
+        novoAnexo.className = 'anexo-item mb-3';
+        novoAnexo.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <label class="form-label">Arquivo</label>
+                    <input type="file" class="form-control" name="anexos[]" required>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">Descrição (opcional)</label>
+                    <input type="text" class="form-control" name="descricoes_anexos[]" placeholder="Descrição do arquivo">
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="button" class="btn btn-danger btn-remover-anexo">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        anexosContainer.appendChild(novoAnexo);
+        
+        // Adiciona evento ao botão remover
+        const btnRemover = novoAnexo.querySelector('.btn-remover-anexo');
+        btnRemover.addEventListener('click', function() {
+            novoAnexo.remove();
+            atualizarBotoesRemover();
+        });
+        
+        atualizarBotoesRemover();
+    }
 
-            var $container = $(
-                '<div class="select2-client-result">' +
-                    '<div class="client-name"><strong>' + cliente.nome + '</strong></div>' +
-                    (cliente.cpf_cnpj ? '<div class="client-document text-muted small">' + cliente.cpf_cnpj + '</div>' : '') +
-                    (cliente.celular ? '<div class="client-phone text-muted small">' + cliente.celular + '</div>' : '') +
-                '</div>'
-            );
+    // Evento para adicionar novo anexo
+    btnAdicionarAnexo.addEventListener('click', adicionarCampoAnexo);
 
-            return $container;
-        },
-        templateSelection: function (cliente) {
-            if (cliente.id === '') {
-                return cliente.text;
-            }
-
-            var selectionText = cliente.nome;
-            return selectionText;
-        }
+    // Adiciona eventos aos botões remover existentes
+    document.querySelectorAll('.btn-remover-anexo').forEach(btn => {
+        btn.addEventListener('click', function() {
+            this.closest('.anexo-item').remove();
+            atualizarBotoesRemover();
+        });
     });
 
-    // Limpar seleção quando o usuário clicar no "x"
-    $('.select2-cliente').on('select2:unselecting', function() {
-        $(this).data('unselecting', true);
-    }).on('select2:opening', function(e) {
-        if ($(this).data('unselecting')) {
-            $(this).removeData('unselecting');
-            e.preventDefault();
-        }
-    });
+    // Inicializa os botões
+    atualizarBotoesRemover();
 });
-
 </script>
 
 <style>

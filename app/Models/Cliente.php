@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\Loggable;
 
-
 class Cliente extends Model
 {
     use HasFactory, SoftDeletes, Loggable;
@@ -17,9 +16,15 @@ class Cliente extends Model
     protected $fillable = [
         'nome',
         'cpf_cnpj',
-        'celular', // Alterado de 'whatsapp' para 'celular'
+        'celular',
         'email',
-        'endereco',
+        'cep',
+        'logradouro',
+        'numero',
+        'complemento',
+        'bairro',
+        'cidade',
+        'uf',
         'observacoes'
     ];
 
@@ -42,5 +47,63 @@ class Cliente extends Model
     public function servicosPendentes()
     {
         return $this->servicos()->where('status', '!=', 'Pago');
+    }
+
+    /**
+     * Acessor para endereço completo
+     */
+    public function getEnderecoCompletoAttribute()
+    {
+        $endereco = [];
+        
+        if ($this->logradouro) {
+            $endereco[] = $this->logradouro;
+            if ($this->numero) {
+                $endereco[] = $this->numero;
+            }
+        }
+        
+        if ($this->bairro) {
+            $endereco[] = $this->bairro;
+        }
+        
+        if ($this->cidade) {
+            $endereco[] = $this->cidade;
+        }
+        
+        if ($this->uf) {
+            $endereco[] = $this->uf;
+        }
+        
+        if ($this->cep) {
+            $endereco[] = $this->cep;
+        }
+        
+        return implode(', ', $endereco);
+    }
+
+    /**
+     * Acessor para endereço resumido (sem CEP)
+     */
+    public function getEnderecoResumidoAttribute()
+    {
+        $endereco = [];
+        
+        if ($this->logradouro) {
+            $endereco[] = $this->logradouro;
+            if ($this->numero) {
+                $endereco[] = $this->numero;
+            }
+        }
+        
+        if ($this->bairro) {
+            $endereco[] = $this->bairro;
+        }
+        
+        if ($this->cidade && $this->uf) {
+            $endereco[] = $this->cidade . '/' . $this->uf;
+        }
+        
+        return implode(', ', $endereco);
     }
 }

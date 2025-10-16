@@ -92,7 +92,7 @@
                                         <td>{{ $log->created_at->format('d/m/Y H:i:s') }}</td>
                                         <td>{{ $log->user->name }}</td>
                                         <td>
-                                            <span class="badge badge-{{ getActionBadgeClass($log->action) }}">
+                                            <span class="badge bg-{{ getActionBadgeClass($log->action) }}">
                                                 {{ $log->action_formatted }}
                                             </span>
                                         </td>
@@ -118,8 +118,8 @@
                     </div>
 
                     <!-- Paginação -->
-                    <div class="d-flex justify-content-center">
-                        {{ $logs->links() }}
+                    <div class="d-flex justify-content-center mt-4">
+                        {{ $logs->onEachSide(1)->links('pagination::bootstrap-5') }}
                     </div>
                 </div>
             </div>
@@ -141,46 +141,46 @@
 @endphp
 
 <style>
-/* Corrige o tamanho das setas da paginação */
-.pagination .page-link {
-    padding: 0.375rem 0.75rem;
+/* Correção específica para a paginação na página de logs */
+.card .pagination {
+    margin-bottom: 0;
+    flex-wrap: wrap;
+}
+
+.card .page-link {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    border: 1px solid var(--bs-border-color);
+    color: var(--bs-body-color);
+    background-color: var(--bs-body-bg);
+}
+
+.card .page-link:hover {
+    background-color: var(--bs-tertiary-bg);
+    border-color: var(--bs-border-color);
+}
+
+.card .page-item.active .page-link {
+    background-color: var(--primary-500);
+    border-color: var(--primary-500);
+    color: white;
+}
+
+.card .page-item.disabled .page-link {
+    color: var(--bs-secondary-color);
+    background-color: var(--bs-secondary-bg);
+    border-color: var(--bs-border-color);
+}
+
+/* Garantir que os ícones tenham tamanho correto */
+.card .page-link i {
     font-size: 0.875rem;
 }
 
-.pagination .page-item:first-child .page-link,
-.pagination .page-item:last-child .page-link {
-    padding: 0.375rem 0.75rem;
-}
-
-/* Remove qualquer estilo que esteja fazendo as setas ficarem gigantes */
-.pagination .page-link i {
-    font-size: 0.875rem;
-}
-
-/* Garante que a paginação tenha o estilo padrão do Bootstrap */
-.pagination {
-    --bs-pagination-padding-x: 0.75rem;
-    --bs-pagination-padding-y: 0.375rem;
-    --bs-pagination-font-size: 0.875rem;
-    --bs-pagination-color: var(--bs-link-color);
-    --bs-pagination-bg: var(--bs-body-bg);
-    --bs-pagination-border-width: var(--bs-border-width);
-    --bs-pagination-border-color: var(--bs-border-color);
-    --bs-pagination-border-radius: var(--bs-border-radius);
-    --bs-pagination-hover-color: var(--bs-link-hover-color);
-    --bs-pagination-hover-bg: var(--bs-tertiary-bg);
-    --bs-pagination-hover-border-color: var(--bs-border-color);
-    --bs-pagination-focus-color: var(--bs-link-hover-color);
-    --bs-pagination-focus-bg: var(--bs-secondary-bg);
-    --bs-pagination-focus-box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-    --bs-pagination-active-color: #fff;
-    --bs-pagination-active-bg: #0d6efd;
-    --bs-pagination-active-border-color: #0d6efd;
-    --bs-pagination-disabled-color: var(--bs-secondary-color);
-    --bs-pagination-disabled-bg: var(--bs-secondary-bg);
-    --bs-pagination-disabled-border-color: var(--bs-border-color);
-    display: flex;
-    padding-left: 0;
-    list-style: none;
+/* Badges corrigidas para Bootstrap 5 */
+.badge {
+    font-size: 0.75em;
+    font-weight: 600;
+    padding: 0.35em 0.65em;
 }
 </style>

@@ -1,13 +1,15 @@
 <?php
 
 namespace App\Http\Controllers;
-
 use App\Models\Servico;
 use App\Models\Cliente;
 use Illuminate\Http\Request;
 use App\Exports\ServicosExport;
 use Maatwebsite\Excel\Facades\Excel; 
 use Barryvdh\DomPDF\Facade\Pdf; 
+use App\Models\AnexoServico;
+use Illuminate\Support\Facades\Storage; 
+
 class ServicoController extends Controller
 {
     public function index(Request $request)
@@ -259,7 +261,7 @@ class ServicoController extends Controller
         ]);
     }
 
-     public function store(Request $request)
+    public function store(Request $request)
     {
         $validated = $request->validate([
             'cliente_id' => 'required|exists:clientes,id',
@@ -274,7 +276,11 @@ class ServicoController extends Controller
             'datas_parcelas' => 'nullable|array',
             'datas_parcelas.*' => 'nullable|date',
             'observacoes' => 'nullable|string',
-            'pago_at' => 'nullable|date'
+            'pago_at' => 'nullable|date',
+            'anexos' => 'nullable|array|max:5',
+            'anexos.*' => 'file|max:2480', // 10MB max por arquivo
+            'descricoes_anexos' => 'nullable|array',
+            'descricoes_anexos.*' => 'nullable|string|max:255'
         ]);
 
         // Remove campos desnecessários
@@ -300,13 +306,21 @@ class ServicoController extends Controller
         // Remove campos extras
         $dataPrimeiroVencimento = $validated['data_primeiro_vencimento'] ?? null;
         $datasParcelas = $validated['datas_parcelas'] ?? [];
-        unset($validated['data_primeiro_vencimento'], $validated['datas_parcelas']);
+        $anexos = $request->file('anexos') ?? [];
+        $descricoesAnexos = $validated['descricoes_anexos'] ?? [];
+        
+        unset($validated['data_primeiro_vencimento'], $validated['datas_parcelas'], $validated['anexos'], $validated['descricoes_anexos']);
 
         $servico = Servico::create($validated);
 
         // Cria parcelas se for parcelado
         if ($servico->tipo_pagamento === 'parcelado' && $servico->parcelas > 1) {
             $servico->criarParcelas([1 => $dataPrimeiroVencimento] + $datasParcelas);
+        }
+
+        // Upload de anexos
+        if (!empty($anexos)) {
+            $this->processarAnexos($servico, $anexos, $descricoesAnexos);
         }
 
         return redirect()->route('servicos.index')
@@ -341,7 +355,11 @@ class ServicoController extends Controller
             'valor' => 'nullable|numeric|min:0',
             'tipo_pagamento' => 'required|in:avista,parcelado',
             'observacoes' => 'nullable|string',
-            'pago_at' => 'nullable|date'
+            'pago_at' => 'nullable|date',
+            'anexos' => 'nullable|array|max:5',
+            'anexos.*' => 'file|max:10240', // 10MB max por arquivo
+            'descricoes_anexos' => 'nullable|array',
+            'descricoes_anexos.*' => 'nullable|string|max:255'
         ];
 
         // Validação condicional para campos de parcelamento
@@ -389,7 +407,10 @@ class ServicoController extends Controller
         // Remove campos que não existem na tabela
         $dataPrimeiroVencimento = $validated['data_primeiro_vencimento'] ?? null;
         $datasParcelas = $validated['datas_parcelas'] ?? [];
-        unset($validated['data_primeiro_vencimento'], $validated['datas_parcelas']);
+        $anexos = $request->file('anexos') ?? [];
+        $descricoesAnexos = $validated['descricoes_anexos'] ?? [];
+        
+        unset($validated['data_primeiro_vencimento'], $validated['datas_parcelas'], $validated['anexos'], $validated['descricoes_anexos']);
 
         // Atualiza o serviço
         $servico->update($validated);
@@ -424,10 +445,64 @@ class ServicoController extends Controller
             $servico->parcelasServico()->delete();
         }
 
+        // Upload de novos anexos
+        if (!empty($anexos)) {
+            $this->processarAnexos($servico, $anexos, $descricoesAnexos);
+        }
+
         return redirect()->route('servicos.show', $servico)
             ->with('success', 'Serviço atualizado com sucesso!');
     }
 
+        private function processarAnexos(Servico $servico, $anexos, $descricoesAnexos)
+    {
+        foreach ($anexos as $index => $anexo) {
+            if ($anexo->isValid()) {
+                // Verifica se já atingiu o limite de 5 anexos
+                if ($servico->anexos()->count() >= 5) {
+                    break;
+                }
+
+                $nomeOriginal = $anexo->getClientOriginalName();
+                $caminho = $anexo->store('anexos_servicos', 'public');
+                $descricao = $descricoesAnexos[$index] ?? null;
+
+                $servico->anexos()->create([
+                    'nome_arquivo' => $nomeOriginal,
+                    'caminho_arquivo' => $caminho,
+                    'mime_type' => $anexo->getMimeType(),
+                    'tamanho' => $anexo->getSize(),
+                    'descricao' => $descricao,
+                ]);
+            }
+        }
+    }
+
+    public function destroyAnexo(Servico $servico, AnexoServico $anexo)
+    {
+        // Verifica se o anexo pertence ao serviço
+        if ($anexo->servico_id !== $servico->id) {
+            abort(404);
+        }
+
+        // Remove o arquivo do storage
+        Storage::disk('public')->delete($anexo->caminho_arquivo);
+
+        // Remove o registro do banco
+        $anexo->delete();
+
+        return back()->with('success', 'Anexo excluído com sucesso!');
+    }
+
+    public function downloadAnexo(Servico $servico, AnexoServico $anexo)
+    {
+        // Verifica se o anexo pertence ao serviço
+        if ($anexo->servico_id !== $servico->id) {
+            abort(404);
+        }
+
+        return Storage::disk('public')->download($anexo->caminho_arquivo, $anexo->nome_arquivo);
+    }
 
     public function destroy(Servico $servico)
     {

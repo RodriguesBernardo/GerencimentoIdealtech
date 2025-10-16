@@ -41,6 +41,12 @@ class Servico extends Model
         return $this->hasMany(Parcela::class);
     }
 
+    // Relacionamento com anexos
+    public function anexos()
+    {
+        return $this->hasMany(AnexoServico::class);
+    }
+
     // Accessors CORRIGIDOS - usando parcelasServico
     public function getTotalParcelasAttribute()
     {
@@ -77,6 +83,12 @@ class Servico extends Model
     public function getTotalPendenteAttribute()
     {
         return $this->parcelasServico()->where('status', '!=', 'paga')->sum('valor_parcela');
+    }
+
+    // Contador de anexos
+    public function getTotalAnexosAttribute()
+    {
+        return $this->anexos()->count();
     }
 
     public function marcarComoPago($dataPagamento = null)
@@ -154,6 +166,4 @@ class Servico extends Model
     {
         return $this->data_vencimento < now() && $this->status === 'pendente';
     }
-
-    
 }

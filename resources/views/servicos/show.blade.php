@@ -171,6 +171,70 @@
             </div>
         </div>
         @endif
+
+        <!-- Anexos -->
+        @if($servico->anexos->count() > 0)
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Anexos ({{ $servico->anexos->count() }})</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    @foreach($servico->anexos as $anexo)
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex align-items-start">
+                                    <div class="me-3">
+                                        @if($anexo->isImage())
+                                        <i class="fas fa-image fa-2x text-primary"></i>
+                                        @elseif(strpos($anexo->mime_type, 'pdf') !== false)
+                                        <i class="fas fa-file-pdf fa-2x text-danger"></i>
+                                        @elseif(strpos($anexo->mime_type, 'word') !== false || strpos($anexo->mime_type, 'document') !== false)
+                                        <i class="fas fa-file-word fa-2x text-primary"></i>
+                                        @elseif(strpos($anexo->mime_type, 'excel') !== false || strpos($anexo->mime_type, 'spreadsheet') !== false)
+                                        <i class="fas fa-file-excel fa-2x text-success"></i>
+                                        @else
+                                        <i class="fas fa-file fa-2x text-secondary"></i>
+                                        @endif
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="card-title">{{ $anexo->nome_arquivo }}</h6>
+                                        @if($anexo->descricao)
+                                        <p class="card-text small">{{ $anexo->descricao }}</p>
+                                        @endif
+                                        <p class="card-text small text-muted">
+                                            {{ $anexo->tamanho_formatado }} • 
+                                            {{ $anexo->created_at->format('d/m/Y H:i') }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer bg-transparent">
+                                <div class="btn-group w-100">
+                                    <a href="{{ route('servicos.anexos.download', [$servico, $anexo]) }}" 
+                                    class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-download me-1"></i>Download
+                                    </a>
+                                    @if(auth()->user()->is_admin)
+                                    <form action="{{ route('servicos.anexos.destroy', [$servico, $anexo]) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" 
+                                                onclick="return confirm('Tem certeza que deseja excluir este anexo?')">
+                                            <i class="fas fa-trash me-1"></i>Excluir
+                                        </button>
+                                    </form>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+        @endif
     </div>
 
     <div class="col-md-4">
