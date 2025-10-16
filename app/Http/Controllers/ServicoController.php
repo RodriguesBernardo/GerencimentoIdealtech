@@ -331,7 +331,8 @@ class ServicoController extends Controller
 
     public function update(Request $request, Servico $servico)
     {
-        $validated = $request->validate([
+        // Regras base de validação
+        $rules = [
             'cliente_id' => 'required|exists:clientes,id',
             'descricao' => 'required|string',
             'data_servico' => 'required|date',
@@ -339,13 +340,23 @@ class ServicoController extends Controller
             'observacao_pagamento' => 'nullable|string',
             'valor' => 'nullable|numeric|min:0',
             'tipo_pagamento' => 'required|in:avista,parcelado',
-            'parcelas' => 'required|integer|min:1',
-            'data_primeiro_vencimento' => 'nullable|date',
-            'datas_parcelas' => 'nullable|array',
-            'datas_parcelas.*' => 'nullable|date',
             'observacoes' => 'nullable|string',
             'pago_at' => 'nullable|date'
-        ]);
+        ];
+
+        // Validação condicional para campos de parcelamento
+        if ($request->tipo_pagamento === 'parcelado') {
+            $rules['parcelas'] = 'required|integer|min:2|max:24';
+            $rules['data_primeiro_vencimento'] = 'required|date';
+            $rules['datas_parcelas'] = 'nullable|array';
+            $rules['datas_parcelas.*'] = 'nullable|date';
+        } else {
+            // Para à vista, parcelas é sempre 1
+            $rules['parcelas'] = 'sometimes|integer|min:1|max:1';
+            $request->merge(['parcelas' => 1]);
+        }
+
+        $validated = $request->validate($rules);
 
         // Remove o campo 'nome' se ele existir no array validado
         unset($validated['nome']);
@@ -355,7 +366,7 @@ class ServicoController extends Controller
             $validated['valor'] = null;
         }
 
-        // Se for à vista, parcelas = 1
+        // Garante que parcelas seja 1 para pagamento à vista
         if ($validated['tipo_pagamento'] === 'avista') {
             $validated['parcelas'] = 1;
         }
@@ -380,18 +391,33 @@ class ServicoController extends Controller
         $datasParcelas = $validated['datas_parcelas'] ?? [];
         unset($validated['data_primeiro_vencimento'], $validated['datas_parcelas']);
 
+        // Atualiza o serviço
         $servico->update($validated);
 
         // Recria as parcelas se necessário
         if ($servico->tipo_pagamento === 'parcelado' && $servico->parcelas > 1) {
             // Prepara o array de datas começando do índice 1
             $datasVencimento = [1 => $dataPrimeiroVencimento];
+            
+            // Adiciona as demais datas das parcelas
             foreach ($datasParcelas as $index => $data) {
                 if ($data) {
                     $datasVencimento[$index] = $data;
                 }
             }
             
+            // Garante que temos todas as datas necessárias
+            for ($i = 2; $i <= $servico->parcelas; $i++) {
+                if (!isset($datasVencimento[$i]) || empty($datasVencimento[$i])) {
+                    // Calcula uma data baseada na primeira parcela + (i-1) meses
+                    $dataBase = new \DateTime($dataPrimeiroVencimento);
+                    $dataBase->modify('+' . ($i - 1) . ' months');
+                    $datasVencimento[$i] = $dataBase->format('Y-m-d');
+                }
+            }
+            
+            // Remove parcelas existentes e cria novas
+            $servico->parcelasServico()->delete();
             $servico->criarParcelas($datasVencimento);
         } else {
             // Se não é parcelado, remove todas as parcelas

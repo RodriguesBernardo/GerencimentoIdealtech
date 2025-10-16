@@ -139,3 +139,48 @@
         };
     }
 @endphp
+
+<style>
+/* Corrige o tamanho das setas da paginação */
+.pagination .page-link {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.pagination .page-item:first-child .page-link,
+.pagination .page-item:last-child .page-link {
+    padding: 0.375rem 0.75rem;
+}
+
+/* Remove qualquer estilo que esteja fazendo as setas ficarem gigantes */
+.pagination .page-link i {
+    font-size: 0.875rem;
+}
+
+/* Garante que a paginação tenha o estilo padrão do Bootstrap */
+.pagination {
+    --bs-pagination-padding-x: 0.75rem;
+    --bs-pagination-padding-y: 0.375rem;
+    --bs-pagination-font-size: 0.875rem;
+    --bs-pagination-color: var(--bs-link-color);
+    --bs-pagination-bg: var(--bs-body-bg);
+    --bs-pagination-border-width: var(--bs-border-width);
+    --bs-pagination-border-color: var(--bs-border-color);
+    --bs-pagination-border-radius: var(--bs-border-radius);
+    --bs-pagination-hover-color: var(--bs-link-hover-color);
+    --bs-pagination-hover-bg: var(--bs-tertiary-bg);
+    --bs-pagination-hover-border-color: var(--bs-border-color);
+    --bs-pagination-focus-color: var(--bs-link-hover-color);
+    --bs-pagination-focus-bg: var(--bs-secondary-bg);
+    --bs-pagination-focus-box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    --bs-pagination-active-color: #fff;
+    --bs-pagination-active-bg: #0d6efd;
+    --bs-pagination-active-border-color: #0d6efd;
+    --bs-pagination-disabled-color: var(--bs-secondary-color);
+    --bs-pagination-disabled-bg: var(--bs-secondary-bg);
+    --bs-pagination-disabled-border-color: var(--bs-border-color);
+    display: flex;
+    padding-left: 0;
+    list-style: none;
+}
+</style>

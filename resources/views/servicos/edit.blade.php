@@ -136,6 +136,12 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="col-12">
+                    <div class="alert alert-info mt-3" id="parcela_info">
+                        Informe o valor total, número de parcelas e primeira data de vencimento para ver o resumo.
+                    </div>
+                </div>
             </div>
 
             <div class="row">
@@ -350,11 +356,16 @@
         function toggleParcelamentoFields() {
             if (tipoPagamento.value === 'parcelado') {
                 parcelamentoFields.style.display = 'block';
+                // Habilita os campos
+                parcelasInput.disabled = false;
+                dataPrimeiroVencimento.disabled = false;
                 calcularParcelas();
                 gerarCamposDatasParcelas();
             } else {
                 parcelamentoFields.style.display = 'none';
-                parcelaInfo.innerHTML = '';
+                // Desabilita os campos para evitar validação
+                parcelasInput.disabled = true;
+                dataPrimeiroVencimento.disabled = true;
                 datasParcelasContainer.style.display = 'none';
             }
         }
