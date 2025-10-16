@@ -364,6 +364,17 @@
             
             if (numParcelas > 1) {
                 datasParcelasContainer.style.display = 'block';
+                
+                // Salva os valores atuais antes de regenerar
+                const valoresAtuais = {};
+                for (let i = 2; i <= numParcelas; i++) {
+                    const input = document.querySelector(`input[name="datas_parcelas[${i}]"]`);
+                    if (input && input.value) {
+                        valoresAtuais[i] = input.value;
+                    }
+                }
+                
+                // Limpa e regenera os campos
                 datasParcelasFields.innerHTML = '';
                 
                 for (let i = 2; i <= numParcelas; i++) {
@@ -373,18 +384,17 @@
                     
                     const dataSugeridaStr = dataSugerida.toISOString().split('T')[0];
                     
-                    // Verifica se já existe um valor para esta parcela
-                    const existingInput = document.querySelector(`input[name="datas_parcelas[${i}]"]`);
-                    const existingValue = existingInput ? existingInput.value : dataSugeridaStr;
+                    // Usa o valor salvo se existir, caso contrário usa o sugerido
+                    const valorFinal = valoresAtuais[i] || dataSugeridaStr;
                     
                     const div = document.createElement('div');
                     div.className = 'col-md-4 mb-2';
                     div.innerHTML = `
                         <label for="datas_parcelas_${i}" class="form-label small">Parcela ${i}</label>
                         <input type="date" class="form-control form-control-sm" 
-                               id="datas_parcelas_${i}" 
-                               name="datas_parcelas[${i}]" 
-                               value="${existingValue}">
+                            id="datas_parcelas_${i}" 
+                            name="datas_parcelas[${i}]" 
+                            value="${valorFinal}">
                     `;
                     datasParcelasFields.appendChild(div);
                 }
@@ -392,6 +402,7 @@
                 datasParcelasContainer.style.display = 'none';
             }
         }
+
 
         function calcularParcelas() {
             const valor = parseFloat(valorInput.value) || 0;
@@ -409,13 +420,29 @@
                 
                 // Adiciona informações das demais parcelas
                 for (let i = 2; i <= numParcelas; i++) {
-                    const inputData = document.getElementById(`datas_parcelas_${i}`);
-                    const dataParcela = inputData ? inputData.value : calcularDataMensal(primeiraData, i-1);
+                    const inputData = document.querySelector(`input[name="datas_parcelas[${i}]"]`);
+                    let dataParcela;
+                    
+                    if (inputData && inputData.value) {
+                        // Usa a data que já está no campo
+                        dataParcela = inputData.value;
+                    } else {
+                        // Calcula uma data sugerida
+                        dataParcela = calcularDataMensal(primeiraData, i-1);
+                        
+                        // Preenche automaticamente o campo se estiver vazio
+                        if (inputData && !inputData.value) {
+                            inputData.value = dataParcela;
+                        }
+                    }
+                    
                     infoHTML += `<br>• Parcela ${i}: ${formatarData(dataParcela)}`;
                 }
                 
-                parcelaInfo.innerHTML = infoHTML;
-            } else {
+                if (parcelaInfo) {
+                    parcelaInfo.innerHTML = infoHTML;
+                }
+            } else if (parcelaInfo) {
                 parcelaInfo.innerHTML = 'Informe o valor total, número de parcelas e primeira data de vencimento para ver o resumo.';
             }
         }
@@ -444,11 +471,26 @@
             gerarCamposDatasParcelas();
             calcularParcelas();
         });
+        
         dataPrimeiroVencimento.addEventListener('change', function() {
             gerarCamposDatasParcelas();
             calcularParcelas();
+            
+            // Preenche automaticamente todas as parcelas baseado na primeira data
+            const numParcelas = parseInt(parcelasInput.value) || 2;
+            const primeiraData = this.value;
+            
+            if (primeiraData) {
+                for (let i = 2; i <= numParcelas; i++) {
+                    const inputData = document.querySelector(`input[name="datas_parcelas[${i}]"]`);
+                    if (inputData && !inputData.value) {
+                        const dataCalculada = calcularDataMensal(primeiraData, i-1);
+                        inputData.value = dataCalculada;
+                    }
+                }
+                calcularParcelas();
+            }
         });
-
         // Delegation para os campos de data dinâmicos
         document.addEventListener('change', function(e) {
             if (e.target.name && e.target.name.startsWith('datas_parcelas')) {

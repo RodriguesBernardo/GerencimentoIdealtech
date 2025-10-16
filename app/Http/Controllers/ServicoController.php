@@ -14,46 +14,58 @@ class ServicoController extends Controller
     {
         $query = Servico::with(['cliente', 'parcelasServico']);
 
-        // Definir datas padrão (mês atual)
+        // Definir datas padrão (mês atual) - ESTAS SÃO AS DATAS PARA OS INSIGHTS
         $dataInicial = $request->data_inicial ?? now()->startOfMonth()->format('Y-m-d');
         $dataFinal = $request->data_final ?? now()->endOfMonth()->format('Y-m-d');
 
-        // Filtro por data
-        $query->whereBetween('data_servico', [$dataInicial, $dataFinal]);
+        // **QUERY PARA FILTRAGEM NA LISTA** (com todos os filtros)
+        $queryFiltrada = clone $query;
+        
+        // Aplicar filtros apenas na query da listagem
+        $queryFiltrada->whereBetween('data_servico', [$dataInicial, $dataFinal]);
 
-        // Filtro por nome do cliente
         if ($request->search) {
-            $query->whereHas('cliente', function($q) use ($request) {
+            $queryFiltrada->whereHas('cliente', function($q) use ($request) {
                 $q->where('nome', 'like', "%{$request->search}%");
             });
         }
 
         if ($request->status) {
-            $query->where('status_pagamento', $request->status);
+            $queryFiltrada->where('status_pagamento', $request->status);
         }
 
         if ($request->tipo_pagamento) {
-            $query->where('tipo_pagamento', $request->tipo_pagamento);
+            $queryFiltrada->where('tipo_pagamento', $request->tipo_pagamento);
         }
 
-        $servicos = $query->latest('data_servico')->paginate(15);
+        // Paginação apenas na query filtrada
+        $servicos = $queryFiltrada->orderBy('data_servico', 'DESC')
+                                ->orderBy('created_at', 'DESC')
+                                ->paginate(15);
 
-        // Insights apenas para admin - COM CÁLCULOS CORRETOS DAS PARCELAS
-        $insights = auth()->user()->is_admin ? $this->calcularInsightsComParcelas($query) : [];
+        // **INSIGHTS: usar query separada com apenas o filtro de período**
+        $queryInsights = Servico::with(['cliente', 'parcelasServico'])
+                            ->whereBetween('data_servico', [$dataInicial, $dataFinal]);
+        
+        $insights = auth()->user()->is_admin ? $this->calcularInsightsComParcelas($queryInsights) : [];
 
         return view('servicos.index', compact('servicos', 'insights', 'dataInicial', 'dataFinal'));
     }
 
     private function calcularInsightsComParcelas($query)
     {
+        // Garantir que pegamos todos os registros (sem paginação)
         $servicosComParcelas = $query->with('parcelasServico')->get();
         
         // Cálculos considerando as parcelas
         $totalPago = 0;
         $totalPendente = 0;
         $totalDevedor = 0;
+        $valorTotal = 0;
         
         foreach ($servicosComParcelas as $servico) {
+            $valorTotal += $servico->valor ?? 0;
+            
             if ($servico->tipo_pagamento == 'avista') {
                 // Serviço à vista
                 if ($servico->status_pagamento == 'pago') {
@@ -68,18 +80,19 @@ class ServicoController extends Controller
                 // Serviço parcelado - calcular baseado nas parcelas
                 $parcelasPagas = $servico->parcelasServico->where('status', 'paga');
                 $parcelasPendentes = $servico->parcelasServico->where('status', 'pendente');
+                $parcelasNaoPagas = $servico->parcelasServico->where('status', 'nao_paga');
                 
                 $totalPago += $parcelasPagas->sum('valor_parcela');
                 $totalPendente += $parcelasPendentes->sum('valor_parcela');
-                $totalDevedor += $parcelasPendentes->sum('valor_parcela');
+                $totalDevedor += $parcelasPendentes->sum('valor_parcela') + $parcelasNaoPagas->sum('valor_parcela');
             }
         }
 
         return [
             'total_clientes' => Cliente::count(),
             'total_servicos' => $servicosComParcelas->count(),
-            'valor_total' => $servicosComParcelas->sum('valor') ?? 0,
-            'valor_mes_atual' => $servicosComParcelas->sum('valor') ?? 0, // Já está filtrado pelo período
+            'valor_total' => $valorTotal,
+            'valor_mes_atual' => $valorTotal, // Já está filtrado pelo período
             'valor_ano_atual' => Servico::whereYear('data_servico', now()->year)->sum('valor') ?? 0,
             'total_devedor' => $totalDevedor,
             'total_pago' => $totalPago,
