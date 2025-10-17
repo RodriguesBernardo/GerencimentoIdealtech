@@ -37,7 +37,7 @@ Route::middleware(['auth'])->group(function () {
     // Rotas para anexos de serviços
     Route::get('servicos/{servico}/anexos/{anexo}/download', [ServicoController::class, 'downloadAnexo'])->name('servicos.anexos.download');
     Route::delete('servicos/{servico}/anexos/{anexo}', [ServicoController::class, 'destroyAnexo'])->name('servicos.anexos.destroy');
-
+    Route::put('/servicos/{servico}/parcelas/atualizar-valores', [ServicoController::class, 'atualizarValoresParcelas'])->name('servicos.parcelas.atualizar-valores');
 
     // Parcelas
     Route::post('/parcelas/{parcela}/marcar-paga', [ParcelaController::class, 'marcarPaga'])->name('parcelas.marcar-paga');
