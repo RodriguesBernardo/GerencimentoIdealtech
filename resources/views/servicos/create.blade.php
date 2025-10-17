@@ -14,7 +14,7 @@
         <h5 class="card-title mb-0">Cadastrar Novo Serviço</h5>
     </div>
     <div class="card-body">
-        <form action="{{ route('servicos.store') }}" method="POST">
+        <form action="{{ route('servicos.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
 
             <div class="row">
@@ -45,7 +45,7 @@
                     <div class="mb-3">
                         <label for="descricao" class="form-label">Descrição do Serviço *</label>
                         <input type="text" class="form-control" id="descricao" name="descricao" value="{{ old('descricao') }}" required>
-                        @error('nome')
+                        @error('descricao')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
                     </div>
@@ -79,6 +79,7 @@
                         <select class="form-control" id="status_pagamento" name="status_pagamento" required>
                             <option value="pendente" {{ old('status_pagamento') == 'pendente' ? 'selected' : '' }}>Pendente</option>
                             <option value="pago" {{ old('status_pagamento') == 'pago' ? 'selected' : '' }}>Pago</option>
+                            <option value="nao_pago" {{ old('status_pagamento') == 'nao_pago' ? 'selected' : '' }}>Não Pago</option>
                         </select>
                         @error('status_pagamento')
                         <div class="text-danger small mt-1">{{ $message }}</div>
@@ -226,83 +227,239 @@
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const anexosContainer = document.getElementById('anexos-container');
-    const btnAdicionarAnexo = document.getElementById('btn-adicionar-anexo');
-    const maxAnexos = 5;
+    $(document).ready(function() {
+        // Inicializa o Select2
+        $('.select2-cliente').select2({
+            theme: 'bootstrap-5',
+            language: 'pt-BR',
+            placeholder: 'Digite o nome ou CPF/CNPJ do cliente...',
+            allowClear: true,
+            width: '100%',
+            ajax: {
+                url: '{{ route('clientes.search-ajax') }}',
+                dataType: 'json',
+                delay: 300,
+                data: function (params) {
+                    return {
+                        search: params.term,
+                        page: params.page || 1
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+                    return {
+                        results: data.data,
+                        pagination: {
+                            more: (params.page * 10) < data.total
+                        }
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 2,
+            templateResult: function (cliente) {
+                if (cliente.loading) {
+                    return cliente.text;
+                }
 
-    function atualizarBotoesRemover() {
-        const botoesRemover = document.querySelectorAll('.btn-remover-anexo');
-        botoesRemover.forEach((btn, index) => {
-            // Mostra o botão remover apenas se houver mais de um anexo
-            btn.style.display = botoesRemover.length > 1 ? 'block' : 'none';
+                var $container = $(
+                    '<div class="select2-client-result">' +
+                        '<div class="client-name"><strong>' + cliente.nome + '</strong></div>' +
+                        (cliente.cpf_cnpj ? '<div class="client-document text-muted small">' + cliente.cpf_cnpj + '</div>' : '') +
+                        (cliente.celular ? '<div class="client-phone text-muted small">' + cliente.celular + '</div>' : '') +
+                    '</div>'
+                );
+
+                return $container;
+            },
+            templateSelection: function (cliente) {
+                if (cliente.id === '') {
+                    return cliente.text;
+                }
+
+                if (cliente.nome) {
+                    return cliente.nome;
+                }
+                // Se for da opção HTML inicial, extrai apenas o nome
+                else if (cliente.text && cliente.text.includes(' - ')) {
+                    return cliente.text.split(' - ')[0];
+                }
+                else {
+                    return cliente.text;
+                }
+            }
         });
 
-        // Desabilita o botão de adicionar se atingiu o limite
-        const anexosAtuais = document.querySelectorAll('.anexo-item').length;
-        const anexosExistentes = {{ isset($servico) ? $servico->anexos->count() : 0 }};
-        const totalAnexos = anexosAtuais + anexosExistentes;
-        
-        btnAdicionarAnexo.disabled = totalAnexos >= maxAnexos;
-        if (totalAnexos >= maxAnexos) {
-            btnAdicionarAnexo.innerHTML = '<i class="fas fa-ban me-1"></i>Limite de anexos atingido';
-            btnAdicionarAnexo.classList.add('btn-secondary');
-            btnAdicionarAnexo.classList.remove('btn-outline-primary');
+        // Controle do tipo de pagamento
+        $('#tipo_pagamento').change(function() {
+            if ($(this).val() === 'parcelado') {
+                $('#parcelamento_fields').show();
+                $('#parcelas').val(2);
+                calcularParcelas();
+            } else {
+                $('#parcelamento_fields').hide();
+                $('#parcelas').val(1);
+                $('#parcela_info').html('');
+                $('#datas_parcelas_container').hide();
+            }
+        });
+
+        // Calcular parcelas quando o valor ou número de parcelas mudar
+        $('#valor, #parcelas, #data_primeiro_vencimento').on('input change', function() {
+            calcularParcelas();
+        });
+
+        // Status do pagamento controla a data de pagamento
+        $('#status_pagamento').change(function() {
+            if ($(this).val() === 'pago') {
+                $('#pago_at').prop('disabled', false);
+                if (!$('#pago_at').val()) {
+                    $('#pago_at').val(new Date().toISOString().slice(0, 16));
+                }
+            } else {
+                $('#pago_at').prop('disabled', true);
+                $('#pago_at').val('');
+            }
+        });
+
+        // Inicializar estado dos campos
+        $('#tipo_pagamento').trigger('change');
+        $('#status_pagamento').trigger('change');
+
+        function calcularParcelas() {
+            const valorTotal = parseFloat($('#valor').val()) || 0;
+            const numParcelas = parseInt($('#parcelas').val()) || 2;
+            const dataPrimeiroVencimento = $('#data_primeiro_vencimento').val();
+            
+            if (valorTotal <= 0 || numParcelas < 2 || !dataPrimeiroVencimento) {
+                $('#parcela_info').html('<div class="text-warning">Preencha o valor total e a data do primeiro vencimento para calcular as parcelas.</div>');
+                $('#datas_parcelas_container').hide();
+                return;
+            }
+
+            const valorParcela = valorTotal / numParcelas;
+            
+            // Gerar informações das parcelas
+            let infoHTML = `<strong>Resumo das Parcelas:</strong><br>`;
+            infoHTML += `Valor total: R$ ${valorTotal.toFixed(2)}<br>`;
+            infoHTML += `Número de parcelas: ${numParcelas}<br>`;
+            infoHTML += `Valor de cada parcela: R$ ${valorParcela.toFixed(2)}<br><br>`;
+            
+            // Gerar campos de datas individuais
+            let datasHTML = '';
+            const dataBase = new Date(dataPrimeiroVencimento);
+            
+            for (let i = 1; i <= numParcelas; i++) {
+                const dataParcela = new Date(dataBase);
+                dataParcela.setMonth(dataBase.getMonth() + (i - 1));
+                
+                const dataFormatada = dataParcela.toISOString().split('T')[0];
+                const valorFormatado = valorParcela.toFixed(2);
+                
+                infoHTML += `Parcela ${i}: ${new Date(dataFormatada).toLocaleDateString('pt-BR')} - R$ ${valorFormatado}<br>`;
+                
+                datasHTML += `
+                    <div class="col-md-4 mb-2">
+                        <div class="input-group">
+                            <span class="input-group-text">Parcela ${i}</span>
+                            <input type="date" class="form-control" name="datas_parcelas[${i}]" value="${dataFormatada}">
+                        </div>
+                    </div>
+                `;
+            }
+            
+            $('#parcela_info').html(infoHTML);
+            $('#datas_parcelas_fields').html(datasHTML);
+            $('#datas_parcelas_container').show();
         }
-    }
 
-    function adicionarCampoAnexo() {
-        const novoAnexo = document.createElement('div');
-        novoAnexo.className = 'anexo-item mb-3';
-        novoAnexo.innerHTML = `
-            <div class="row">
-                <div class="col-md-6">
-                    <label class="form-label">Arquivo</label>
-                    <input type="file" class="form-control" name="anexos[]" required>
+        // Gerenciamento de anexos
+        const anexosContainer = document.getElementById('anexos-container');
+        const btnAdicionarAnexo = document.getElementById('btn-adicionar-anexo');
+        const maxAnexos = 5;
+
+        function atualizarBotoesRemover() {
+            const botoesRemover = document.querySelectorAll('.btn-remover-anexo');
+            botoesRemover.forEach((btn, index) => {
+                // Mostra o botão remover apenas se houver mais de um anexo
+                btn.style.display = botoesRemover.length > 1 ? 'block' : 'none';
+            });
+
+            // Desabilita o botão de adicionar se atingiu o limite
+            const anexosAtuais = document.querySelectorAll('.anexo-item').length;
+            btnAdicionarAnexo.disabled = anexosAtuais >= maxAnexos;
+            
+            if (anexosAtuais >= maxAnexos) {
+                btnAdicionarAnexo.innerHTML = '<i class="fas fa-ban me-1"></i>Limite de anexos atingido';
+                btnAdicionarAnexo.classList.add('btn-secondary');
+                btnAdicionarAnexo.classList.remove('btn-outline-primary');
+            } else {
+                btnAdicionarAnexo.innerHTML = '<i class="fas fa-plus me-1"></i>Adicionar outro arquivo';
+                btnAdicionarAnexo.classList.remove('btn-secondary');
+                btnAdicionarAnexo.classList.add('btn-outline-primary');
+            }
+        }
+
+        function adicionarCampoAnexo() {
+            const novoAnexo = document.createElement('div');
+            novoAnexo.className = 'anexo-item mb-3';
+            novoAnexo.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Arquivo</label>
+                        <input type="file" class="form-control" name="anexos[]">
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label">Descrição (opcional)</label>
+                        <input type="text" class="form-control" name="descricoes_anexos[]" placeholder="Descrição do arquivo">
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end">
+                        <button type="button" class="btn btn-danger btn-remover-anexo">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="col-md-5">
-                    <label class="form-label">Descrição (opcional)</label>
-                    <input type="text" class="form-control" name="descricoes_anexos[]" placeholder="Descrição do arquivo">
-                </div>
-                <div class="col-md-1 d-flex align-items-end">
-                    <button type="button" class="btn btn-danger btn-remover-anexo">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        anexosContainer.appendChild(novoAnexo);
-        
-        // Adiciona evento ao botão remover
-        const btnRemover = novoAnexo.querySelector('.btn-remover-anexo');
-        btnRemover.addEventListener('click', function() {
-            novoAnexo.remove();
+            `;
+            
+            anexosContainer.appendChild(novoAnexo);
+            
+            // Adiciona evento ao botão remover
+            const btnRemover = novoAnexo.querySelector('.btn-remover-anexo');
+            btnRemover.addEventListener('click', function() {
+                novoAnexo.remove();
+                atualizarBotoesRemover();
+            });
+            
             atualizarBotoesRemover();
+        }
+
+        // Evento para adicionar novo anexo
+        btnAdicionarAnexo.addEventListener('click', adicionarCampoAnexo);
+
+        // Adiciona eventos aos botões remover existentes
+        document.querySelectorAll('.btn-remover-anexo').forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.closest('.anexo-item').remove();
+                atualizarBotoesRemover();
+            });
         });
-        
+
+        // Inicializa os botões
         atualizarBotoesRemover();
-    }
-
-    // Evento para adicionar novo anexo
-    btnAdicionarAnexo.addEventListener('click', adicionarCampoAnexo);
-
-    // Adiciona eventos aos botões remover existentes
-    document.querySelectorAll('.btn-remover-anexo').forEach(btn => {
-        btn.addEventListener('click', function() {
-            this.closest('.anexo-item').remove();
-            atualizarBotoesRemover();
-        });
     });
-
-    // Inicializa os botões
-    atualizarBotoesRemover();
-});
 </script>
 
 <style>
     .is-invalid {
         border-color: #dc3545 !important;
+    }
+    .select2-client-result .client-name {
+        font-weight: bold;
+    }
+    .select2-client-result .client-document,
+    .select2-client-result .client-phone {
+        font-size: 0.85em;
+        color: #6c757d;
     }
 </style>
 @endpush
