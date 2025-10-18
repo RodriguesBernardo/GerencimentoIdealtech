@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $servico->nome)
+@section('title', $servico->cliente->nome)
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
