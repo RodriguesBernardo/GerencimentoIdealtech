@@ -12,10 +12,12 @@
 @section('content')
 <div class="card">
     <div class="card-header">
-        <h5 class="card-title mb-0">Editar Serviço: {{ $servico->descricao }}</h5>
+        <h5 class="card-title mb-0">
+            <i class="fas fa-edit text-primary me-2"></i>Editar Serviço: {{ $servico->descricao }}
+        </h5>
     </div>
     <div class="card-body">
-        <form action="{{ route('servicos.update', $servico) }}" method="POST" enctype="multipart/form-data">
+        <form action="{{ route('servicos.update', $servico) }}" method="POST" enctype="multipart/form-data" id="servicoForm">
             @csrf
             @method('PUT')
 
@@ -74,9 +76,9 @@
                 </div>
                 <div class="col-md-4">
                     <div class="mb-3">
-                        <label for="valor" class="form-label">Valor Total (R$)</label>
+                        <label for="valor" class="form-label">Valor Total (R$) *</label>
                         <input type="number" class="form-control" id="valor" name="valor"
-                            value="{{ old('valor', $servico->valor) }}" step="0.01" min="0" placeholder="0,00">
+                            value="{{ old('valor', $servico->valor) }}" step="0.01" min="0.01" placeholder="0,00" required>
                         @error('valor')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
@@ -132,22 +134,9 @@
                 </div>
             </div>
 
-            <!-- Campos de Parcelamento -->
-            @php
-                $displayParcelamento = $servico->tipo_pagamento == 'parcelado' ? 'block' : 'none';
-                $dataPrimeiroVencimento = $servico->parcelasServico->isNotEmpty() ? $servico->parcelasServico->first()->data_vencimento->format('Y-m-d') : date('Y-m-d');
-                
-                // Prepara as datas existentes das parcelas
-                $datasExistentes = [];
-                // Prepara os valores existentes das parcelas
-                $valoresExistentes = [];
-                foreach ($servico->parcelasServico as $parcela) {
-                    $datasExistentes[$parcela->numero_parcela] = $parcela->data_vencimento->format('Y-m-d');
-                    $valoresExistentes[$parcela->numero_parcela] = $parcela->valor_parcela;
-                }
-            @endphp
-            <div class="card mb-4" id="parcelamento_card" style="display: {{ $displayParcelamento }};">
-                <div class="card-header">
+            <!-- Seção de Parcelas -->
+            <div class="card mb-4" id="parcelamento_card" style="display: {{ $servico->tipo_pagamento == 'parcelado' ? 'block' : 'none' }};">
+                <div class="card-header bg-warning bg-opacity-10">
                     <h6 class="card-title mb-0">
                         <i class="fas fa-calendar-alt me-2 text-warning"></i>Configuração de Parcelas
                     </h6>
@@ -166,9 +155,9 @@
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="data_primeiro_vencimento" class="form-label">Data do Primeiro Vencimento</label>
+                                <label for="data_primeiro_vencimento" class="form-label">Data do Primeiro Vencimento *</label>
                                 <input type="date" class="form-control" id="data_primeiro_vencimento" name="data_primeiro_vencimento"
-                                    value="{{ old('data_primeiro_vencimento', $dataPrimeiroVencimento) }}">
+                                    value="{{ old('data_primeiro_vencimento', $servico->parcelasServico->isNotEmpty() ? $servico->parcelasServico->first()->data_vencimento->format('Y-m-d') : date('Y-m-d')) }}">
                                 @error('data_primeiro_vencimento')
                                 <div class="text-danger small mt-1">{{ $message }}</div>
                                 @enderror
@@ -176,63 +165,69 @@
                         </div>
                     </div>
 
-                    <!-- Container para as datas individuais das parcelas -->
-                    <div class="row mb-3" id="datas_parcelas_container" style="display: {{ $servico->parcelas > 1 ? 'block' : 'none' }};">
-                        <div class="col-12">
-                            <label class="form-label">Datas de Vencimento das Parcelas</label>
-                            <div class="alert alert-info py-2">
-                                <small><i class="fas fa-info-circle me-1"></i>Preencha as datas individuais para cada parcela ou deixe em branco para usar vencimentos mensais.</small>
-                            </div>
-                            <div id="datas_parcelas_fields" class="row g-2">
-                                @for($i = 2; $i <= $servico->parcelas; $i++)
-                                    <div class="col-md-4 col-lg-3">
-                                        <div class="mb-2">
-                                            <label class="form-label small">Parcela {{ $i }}</label>
-                                            <input type="date" class="form-control form-control-sm" 
-                                                   name="datas_parcelas[{{ $i }}]" 
-                                                   value="{{ old("datas_parcelas.$i", $datasExistentes[$i] ?? '') }}">
-                                        </div>
-                                    </div>
-                                @endfor
+                    <!-- Configuração Avançada de Parcelas -->
+                    <div class="row" id="config_parcelas_avancada" style="display: {{ $servico->parcelas > 1 ? 'block' : 'none' }};">
+                        <div class="col-12 mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="customizar_parcelas">
+                                <label class="form-check-label" for="customizar_parcelas">
+                                    <strong>Customizar datas e valores das parcelas</strong>
+                                </label>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Container para os valores individuais das parcelas -->
-                    <div class="row mb-3" id="valores_parcelas_container" style="display: {{ $servico->parcelas > 1 ? 'block' : 'none' }};">
-                        <div class="col-12">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <label class="form-label mb-0">Valores Individuais das Parcelas</label>
-                                <button type="button" class="btn btn-outline-primary btn-sm" id="btn-calcular-automatico">
-                                    <i class="fas fa-calculator me-1"></i>Calcular Automaticamente
-                                </button>
-                            </div>
-                            <div class="alert alert-warning py-2">
-                                <small><i class="fas fa-exclamation-circle me-1"></i><strong>Opcional:</strong> Você pode alterar manualmente o valor de cada parcela. As demais parcelas serão ajustadas automaticamente para manter o valor total.</small>
-                            </div>
-                            <div id="valores_parcelas_fields" class="row g-2">
-                                @for($i = 1; $i <= $servico->parcelas; $i++)
-                                    <div class="col-md-4 col-lg-3">
-                                        <div class="mb-2">
-                                            <label class="form-label small">Valor Parcela {{ $i }} (R$)</label>
-                                            <input type="number" class="form-control form-control-sm valor-parcela-input" 
-                                                   name="valores_parcelas[{{ $i }}]" 
-                                                   value="{{ old("valores_parcelas.$i", $valoresExistentes[$i] ?? ($servico->valor / $servico->parcelas)) }}"
-                                                   step="0.01" min="0.01"
-                                                   data-parcela="{{ $i }}"
-                                                   placeholder="0,00">
-                                        </div>
+                        
+                        <!-- Datas Individuais das Parcelas -->
+                        <div class="col-12 mb-3" id="datas_parcelas_container" style="display: none;">
+                            <div class="card border-0">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-3">
+                                        <i class="fas fa-calendar me-2 text-info"></i>Datas de Vencimento Individuais
+                                    </h6>
+                                    <div class="alert alert-info py-2 mb-3">
+                                        <small><i class="fas fa-info-circle me-1"></i>Preencha as datas individuais para cada parcela ou deixe em branco para usar vencimentos mensais automáticos.</small>
                                     </div>
-                                @endfor
+                                    <div id="datas_parcelas_fields" class="row g-2">
+                                        <!-- Campos serão gerados dinamicamente aqui -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Valores Individuais das Parcelas -->
+                        <div class="col-12" id="valores_parcelas_container" style="display: none;">
+                            <div class="card border-0">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="card-title mb-0">
+                                            <i class="fas fa-money-bill me-2 text-success"></i>Valores Individuais das Parcelas
+                                        </h6>
+                                        <button type="button" class="btn btn-outline-primary btn-sm" id="btn-calcular-automatico">
+                                            <i class="fas fa-calculator me-1"></i>Calcular Automaticamente
+                                        </button>
+                                    </div>
+                                    <div class="alert alert-warning py-2 mb-3">
+                                        <small><i class="fas fa-exclamation-circle me-1"></i><strong>Opcional:</strong> Você pode alterar manualmente o valor de cada parcela. O sistema ajustará automaticamente as demais parcelas para manter o valor total.</small>
+                                    </div>
+                                    <div id="valores_parcelas_fields" class="row g-2">
+                                        <!-- Campos serão gerados dinamicamente aqui -->
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Resumo das Parcelas -->
-                    <div class="row">
+                    <div class="row mt-3">
                         <div class="col-12">
-                            <div class="alert alert-success" id="parcela_info">
-                                <i class="fas fa-calculator me-2"></i>Informe o valor total, número de parcelas e primeira data de vencimento para ver o resumo.
+                            <div class="card border-0 bg-success bg-opacity-10">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-2">
+                                        <i class="fas fa-list-alt me-2 text-success"></i>Resumo das Parcelas
+                                    </h6>
+                                    <div id="parcela_info" class="small">
+                                        Informe o valor total, número de parcelas e primeira data de vencimento para ver o resumo.
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -268,94 +263,7 @@
                 </div>
             </div>
 
-            <!-- Seção de Anexos Existentes -->
-            @if($servico->anexos->count() > 0)
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h6 class="card-title mb-0">Anexos Existentes</h6>
-                </div>
-                <div class="card-body">
-                    @foreach($servico->anexos as $anexo)
-                    <div class="anexo-existente mb-3 p-3 border rounded">
-                        <div class="row align-items-center">
-                            <div class="col-md-1">
-                                @if($anexo->isImage())
-                                <i class="fas fa-image fa-2x text-primary"></i>
-                                @elseif(strpos($anexo->mime_type, 'pdf') !== false)
-                                <i class="fas fa-file-pdf fa-2x text-danger"></i>
-                                @elseif(strpos($anexo->mime_type, 'word') !== false || strpos($anexo->mime_type, 'document') !== false)
-                                <i class="fas fa-file-word fa-2x text-primary"></i>
-                                @elseif(strpos($anexo->mime_type, 'excel') !== false || strpos($anexo->mime_type, 'spreadsheet') !== false)
-                                <i class="fas fa-file-excel fa-2x text-success"></i>
-                                @else
-                                <i class="fas fa-file fa-2x text-secondary"></i>
-                                @endif
-                            </div>
-                            <div class="col-md-6">
-                                <strong>{{ $anexo->nome_arquivo }}</strong>
-                                @if($anexo->descricao)
-                                <br><small class="text-muted">{{ $anexo->descricao }}</small>
-                                @endif
-                                <br><small class="text-muted">{{ $anexo->tamanho_formatado }} • {{ $anexo->created_at->format('d/m/Y H:i') }}</small>
-                            </div>
-                            <div class="col-md-5 text-end">
-                                <a href="{{ route('servicos.anexos.download', [$servico, $anexo]) }}" class="btn btn-outline-primary btn-sm">
-                                    <i class="fas fa-download me-1"></i>Download
-                                </a>
-                                <form action="{{ route('servicos.anexos.destroy', [$servico, $anexo]) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-outline-danger btn-sm" 
-                                            onclick="return confirm('Tem certeza que deseja excluir este anexo?')">
-                                        <i class="fas fa-trash me-1"></i>Excluir
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                    @endforeach
-                </div>
-            </div>
-            @endif
-
-            <!-- Seção para Adicionar Novos Anexos -->
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h6 class="card-title mb-0">Adicionar Novos Anexos (Máximo: 5 arquivos no total)</h6>
-                </div>
-                <div class="card-body">
-                    <div id="anexos-container">
-                        <div class="anexo-item mb-3">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <label class="form-label">Arquivo</label>
-                                    <input type="file" class="form-control" name="anexos[]">
-                                </div>
-                                <div class="col-md-5">
-                                    <label class="form-label">Descrição (opcional)</label>
-                                    <input type="text" class="form-control" name="descricoes_anexos[]" placeholder="Descrição do arquivo">
-                                </div>
-                                <div class="col-md-1 d-flex align-items-end">
-                                    <button type="button" class="btn btn-danger btn-remover-anexo" style="display: none;">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <button type="button" class="btn btn-outline-primary btn-sm" id="btn-adicionar-anexo">
-                        <i class="fas fa-plus me-1"></i>Adicionar outro arquivo
-                    </button>
-                    
-                    <div class="form-text">
-                        Formatos aceitos: todos os tipos de arquivo. Tamanho máximo por arquivo: 10MB.
-                        Você já possui {{ $servico->anexos->count() }} de 5 anexos.
-                    </div>
-                </div>
-            </div>
-
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-2 mt-4">
                 <button type="submit" class="btn btn-success">
                     <i class="fas fa-save me-2"></i>Atualizar Serviço
                 </button>
@@ -437,15 +345,38 @@
 
         // Variável para controlar se estamos editando manualmente
         let editandoManual = false;
+        let valoresParcelasExistentes = @json($servico->parcelasServico->pluck('valor_parcela', 'numero_parcela')->toArray());
+        let datasParcelasExistentes = @json($servico->parcelasServico->pluck('data_vencimento', 'numero_parcela')->map(function($date) {
+            return \Carbon\Carbon::parse($date)->format('Y-m-d');
+        })->toArray());
 
         // Controle do tipo de pagamento
         $('#tipo_pagamento').change(function() {
             if ($(this).val() === 'parcelado') {
                 $('#parcelamento_card').show();
+                $('#parcelas').prop('required', true);
+                $('#data_primeiro_vencimento').prop('required', true);
                 calcularParcelas();
             } else {
                 $('#parcelamento_card').hide();
-                $('#parcela_info').html('<i class="fas fa-calculator me-2"></i>Informe o valor total, número de parcelas e primeira data de vencimento para ver o resumo.');
+                $('#parcelas').prop('required', false);
+                $('#data_primeiro_vencimento').prop('required', false);
+                $('#parcela_info').html('<div class="text-muted">Informe o valor total, número de parcelas e primeira data de vencimento para ver o resumo.</div>');
+                $('#config_parcelas_avancada').hide();
+                $('#datas_parcelas_container').hide();
+                $('#valores_parcelas_container').hide();
+                $('#customizar_parcelas').prop('checked', false);
+            }
+        });
+
+        // Controle da customização de parcelas
+        $('#customizar_parcelas').change(function() {
+            if ($(this).is(':checked')) {
+                $('#datas_parcelas_container').show();
+                $('#valores_parcelas_container').show();
+                gerarCamposDatasParcelas();
+                gerarCamposValoresParcelas();
+            } else {
                 $('#datas_parcelas_container').hide();
                 $('#valores_parcelas_container').hide();
             }
@@ -478,6 +409,12 @@
 
         // Inicializar estado dos campos
         $('#tipo_pagamento').trigger('change');
+        
+        // Se já tiver parcelas, inicializar os campos
+        if ($('#tipo_pagamento').val() === 'parcelado' && {{ $servico->parcelas }} > 1) {
+            $('#config_parcelas_avancada').show();
+            calcularParcelas();
+        }
 
         function calcularParcelas() {
             const valorTotal = parseFloat($('#valor').val()) || 0;
@@ -486,21 +423,17 @@
             
             if (valorTotal <= 0 || numParcelas < 2 || !dataPrimeiroVencimento) {
                 $('#parcela_info').html('<div class="text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Preencha o valor total e a data do primeiro vencimento para calcular as parcelas.</div>');
-                $('#datas_parcelas_container').hide();
-                $('#valores_parcelas_container').hide();
+                $('#config_parcelas_avancada').hide();
                 return;
             }
 
-            const valorParcelaPadrao = valorTotal / numParcelas;
-            
-            // Gerar campos de datas individuais
-            gerarCamposDatasParcelas();
-            
-            // Só gera novos campos se o número de parcelas mudou
-            if (numParcelas !== $('.valor-parcela-input').length) {
-                gerarCamposValoresParcelas(valorParcelaPadrao);
+            // Mostrar configuração avançada se houver mais de 1 parcela
+            if (numParcelas > 1) {
+                $('#config_parcelas_avancada').show();
+            } else {
+                $('#config_parcelas_avancada').hide();
             }
-            
+
             // Atualizar display
             atualizarDisplayParcelas(valorTotal, numParcelas, dataPrimeiroVencimento);
         }
@@ -534,8 +467,7 @@
                     const dataFormatada = dataParcela.toISOString().split('T')[0];
                     
                     // Verifica se já existe um valor para esta parcela
-                    const inputExistente = $(`input[name="datas_parcelas[${i}]"]`);
-                    const valorAtual = inputExistente.length > 0 ? inputExistente.val() : dataFormatada;
+                    const valorAtual = datasParcelasExistentes[i] || dataFormatada;
                     
                     datasHTML += `
                         <div class="col-md-4 col-lg-3">
@@ -550,22 +482,20 @@
                 }
                 
                 $('#datas_parcelas_fields').html(datasHTML);
-                $('#datas_parcelas_container').show();
-            } else {
-                $('#datas_parcelas_container').hide();
             }
         }
 
-        function gerarCamposValoresParcelas(valorParcelaPadrao) {
+        function gerarCamposValoresParcelas() {
+            const valorTotal = parseFloat($('#valor').val()) || 0;
             const numParcelas = parseInt($('#parcelas').val()) || 2;
+            const valorParcelaPadrao = valorTotal / numParcelas;
             
             if (numParcelas > 1) {
                 let valoresHTML = '';
                 
                 for (let i = 1; i <= numParcelas; i++) {
                     // Verifica se já existe um valor manual para esta parcela
-                    const inputExistente = $(`input[name="valores_parcelas[${i}]"]`);
-                    const valorAtual = inputExistente.length > 0 ? inputExistente.val() : valorParcelaPadrao.toFixed(2);
+                    const valorAtual = valoresParcelasExistentes[i] || valorParcelaPadrao.toFixed(2);
                     
                     valoresHTML += `
                         <div class="col-md-4 col-lg-3">
@@ -586,9 +516,6 @@
                 
                 // Adiciona eventos aos inputs de valor
                 adicionarEventosValoresParcelas();
-                $('#valores_parcelas_container').show();
-            } else {
-                $('#valores_parcelas_container').hide();
             }
         }
 
@@ -645,19 +572,28 @@
             const valoresParcelas = [];
             let somaValores = 0;
             
-            for (let i = 1; i <= numParcelas; i++) {
-                const inputValor = $(`input[name="valores_parcelas[${i}]"]`);
-                const valorParcela = inputValor.length > 0 ? parseFloat(inputValor.val()) || 0 : valorTotal / numParcelas;
-                valoresParcelas[i] = valorParcela;
-                somaValores += valorParcela;
-                
-                if (Math.abs(valorParcela - (valorTotal / numParcelas)) > 0.01) {
-                    valoresCustomizados = true;
+            // Se estamos customizando, pega os valores dos inputs
+            if ($('#customizar_parcelas').is(':checked')) {
+                for (let i = 1; i <= numParcelas; i++) {
+                    const inputValor = $(`input[name="valores_parcelas[${i}]"]`);
+                    const valorParcela = inputValor.length > 0 ? parseFloat(inputValor.val()) || 0 : valorTotal / numParcelas;
+                    valoresParcelas[i] = valorParcela;
+                    somaValores += valorParcela;
+                    
+                    if (Math.abs(valorParcela - (valorTotal / numParcelas)) > 0.01) {
+                        valoresCustomizados = true;
+                    }
                 }
+            } else {
+                // Se não está customizando, usa valores iguais
+                for (let i = 1; i <= numParcelas; i++) {
+                    valoresParcelas[i] = valorTotal / numParcelas;
+                }
+                somaValores = valorTotal;
             }
 
             // Gerar informações das parcelas
-            let infoHTML = `<strong><i class="fas fa-list-alt me-2"></i>Resumo das Parcelas:</strong><br>`;
+            let infoHTML = `<strong>Resumo das Parcelas:</strong><br>`;
             
             if (valoresCustomizados) {
                 infoHTML += `<span class="text-warning"><i class="fas fa-star me-1"></i>Valores customizados aplicados</span><br>`;
@@ -665,21 +601,36 @@
                 infoHTML += `<span class="text-success"><i class="fas fa-calculator me-1"></i>Valores calculados automaticamente</span><br>`;
             }
             
-            infoHTML += `Valor total: R$ ${valorTotal.toFixed(2)}<br>`;
-            infoHTML += `Número de parcelas: ${numParcelas}<br>`;
+            infoHTML += `<strong>Valor total:</strong> R$ ${valorTotal.toFixed(2)}<br>`;
+            infoHTML += `<strong>Número de parcelas:</strong> ${numParcelas}<br>`;
             
             if (!valoresCustomizados) {
-                infoHTML += `Valor de cada parcela: R$ ${(valorTotal / numParcelas).toFixed(2)}<br><br>`;
+                infoHTML += `<strong>Valor de cada parcela:</strong> R$ ${(valorTotal / numParcelas).toFixed(2)}<br>`;
             }
             
-            infoHTML += `<strong>Detalhamento:</strong><br>`;
+            infoHTML += `<br><strong>Detalhamento:</strong><br>`;
             
             for (let i = 1; i <= numParcelas; i++) {
-                const inputData = $(`input[name="datas_parcelas[${i}]"]`);
-                const dataParcela = inputData.length > 0 ? inputData.val() : calcularDataMensal(dataPrimeiroVencimento, i-1);
+                let dataParcela;
+                
+                if ($('#customizar_parcelas').is(':checked')) {
+                    const inputData = $(`input[name="datas_parcelas[${i}]"]`);
+                    dataParcela = inputData.length > 0 ? inputData.val() : calcularDataMensal(dataPrimeiroVencimento, i-1);
+                } else {
+                    dataParcela = calcularDataMensal(dataPrimeiroVencimento, i-1);
+                }
+                
                 const valorParcela = valoresParcelas[i];
                 
-                infoHTML += `Parcela ${i}: ${formatarData(dataParcela)} - R$ ${valorParcela.toFixed(2)}<br>`;
+                infoHTML += `<div class="d-flex justify-content-between border-bottom py-1">
+                    <span>Parcela ${i}:</span>
+                    <span>${formatarData(dataParcela)} - R$ ${valorParcela.toFixed(2)}</span>
+                </div>`;
+            }
+            
+            // Verificação de consistência
+            if (Math.abs(somaValores - valorTotal) > 0.01) {
+                infoHTML += `<div class="text-danger mt-2"><i class="fas fa-exclamation-triangle me-1"></i>A soma das parcelas (R$ ${somaValores.toFixed(2)}) não corresponde ao valor total!</div>`;
             }
             
             $('#parcela_info').html(infoHTML);
@@ -697,86 +648,43 @@
             return data.toLocaleDateString('pt-BR');
         }
 
-        // Gerenciamento de anexos
-        const anexosContainer = document.getElementById('anexos-container');
-        const btnAdicionarAnexo = document.getElementById('btn-adicionar-anexo');
-        const maxAnexos = 5;
-
-        function atualizarBotoesRemover() {
-            const botoesRemover = document.querySelectorAll('.btn-remover-anexo');
-            botoesRemover.forEach((btn, index) => {
-                btn.style.display = botoesRemover.length > 1 ? 'block' : 'none';
+        // Validação do formulário
+        $('#servicoForm').on('submit', function(e) {
+            // Remove required dos campos ocultos
+            $('#parcelamento_card :input').each(function() {
+                if ($('#parcelamento_card').is(':hidden') || $(this).closest(':hidden').length > 0) {
+                    $(this).prop('required', false);
+                }
             });
-
-            const anexosAtuais = document.querySelectorAll('.anexo-item').length;
-            const anexosExistentes = {{ $servico->anexos->count() }};
-            const totalAnexos = anexosAtuais + anexosExistentes;
             
-            btnAdicionarAnexo.disabled = totalAnexos >= maxAnexos;
-            if (totalAnexos >= maxAnexos) {
-                btnAdicionarAnexo.innerHTML = '<i class="fas fa-ban me-1"></i>Limite de anexos atingido';
-                btnAdicionarAnexo.classList.add('btn-secondary');
-                btnAdicionarAnexo.classList.remove('btn-outline-primary');
-            } else {
-                btnAdicionarAnexo.innerHTML = '<i class="fas fa-plus me-1"></i>Adicionar outro arquivo';
-                btnAdicionarAnexo.classList.remove('btn-secondary');
-                btnAdicionarAnexo.classList.add('btn-outline-primary');
+            // Validação específica para parcelas
+            if ($('#tipo_pagamento').val() === 'parcelado') {
+                const valorTotal = parseFloat($('#valor').val()) || 0;
+                const numParcelas = parseInt($('#parcelas').val()) || 0;
+                
+                if (numParcelas < 2) {
+                    e.preventDefault();
+                    alert('Para pagamento parcelado, é necessário pelo menos 2 parcelas.');
+                    $('#parcelas').focus();
+                    return false;
+                }
+                
+                // Verifica se a soma das parcelas corresponde ao valor total
+                if ($('#customizar_parcelas').is(':checked')) {
+                    let somaValores = 0;
+                    $('.valor-parcela-input').each(function() {
+                        somaValores += parseFloat($(this).val()) || 0;
+                    });
+                    
+                    if (Math.abs(somaValores - valorTotal) > 0.01) {
+                        e.preventDefault();
+                        alert(`A soma das parcelas (R$ ${somaValores.toFixed(2)}) não corresponde ao valor total (R$ ${valorTotal.toFixed(2)}). Por favor, ajuste os valores.`);
+                        return false;
+                    }
+                }
             }
-        }
-
-        function adicionarCampoAnexo() {
-            const novoAnexo = document.createElement('div');
-            novoAnexo.className = 'anexo-item mb-3';
-            novoAnexo.innerHTML = `
-                <div class="row">
-                    <div class="col-md-6">
-                        <label class="form-label">Arquivo</label>
-                        <input type="file" class="form-control" name="anexos[]">
-                    </div>
-                    <div class="col-md-5">
-                        <label class="form-label">Descrição (opcional)</label>
-                        <input type="text" class="form-control" name="descricoes_anexos[]" placeholder="Descrição do arquivo">
-                    </div>
-                    <div class="col-md-1 d-flex align-items-end">
-                        <button type="button" class="btn btn-danger btn-remover-anexo">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
             
-            anexosContainer.appendChild(novoAnexo);
-            
-            const btnRemover = novoAnexo.querySelector('.btn-remover-anexo');
-            btnRemover.addEventListener('click', function() {
-                novoAnexo.remove();
-                atualizarBotoesRemover();
-            });
-            
-            atualizarBotoesRemover();
-        }
-
-        // Evento para adicionar novo anexo
-        btnAdicionarAnexo.addEventListener('click', adicionarCampoAnexo);
-
-        // Adiciona eventos aos botões remover existentes
-        document.querySelectorAll('.btn-remover-anexo').forEach(btn => {
-            btn.addEventListener('click', function() {
-                this.closest('.anexo-item').remove();
-                atualizarBotoesRemover();
-            });
-        });
-
-        // Inicializa os botões
-        atualizarBotoesRemover();
-    });
-
-    // No evento de submit do formulário, remova required dos campos ocultos
-    $('form').on('submit', function() {
-        $('#parcelamento_card :input').each(function() {
-            if ($(this).is(':hidden') || $(this).closest(':hidden').length > 0) {
-                $(this).prop('required', false);
-            }
+            return true;
         });
     });
 </script>
@@ -795,6 +703,10 @@
     }
     .card-header h6 {
         font-weight: 600;
+    }
+    .valor-parcela-input:focus {
+        border-color: #198754;
+        box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
     }
 </style>
 @endpush

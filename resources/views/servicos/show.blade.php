@@ -173,11 +173,19 @@
         @endif
 
         <!-- Anexos -->
-        @if($servico->anexos->count() > 0)
         <div class="card mt-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Anexos ({{ $servico->anexos->count() }})</h5>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Anexos ({{ $servico->anexos->count() }}/5)</h5>
+                @if($servico->anexos->count() < 5)
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#adicionarAnexoModal">
+                    <i class="fas fa-plus me-1"></i>Adicionar Anexo
+                </button>
+                @else
+                <span class="badge bg-secondary">Limite atingido</span>
+                @endif
             </div>
+            
+            @if($servico->anexos->count() > 0)
             <div class="card-body">
                 <div class="row">
                     @foreach($servico->anexos as $anexo)
@@ -233,8 +241,14 @@
                     @endforeach
                 </div>
             </div>
+            @else
+            <div class="card-body text-center py-5">
+                <i class="fas fa-file-upload fa-3x text-muted mb-3"></i>
+                <p class="text-muted mb-0">Nenhum anexo adicionado ainda.</p>
+                <p class="text-muted">Clique no botão "Adicionar Anexo" para enviar arquivos.</p>
+            </div>
+            @endif
         </div>
-        @endif
     </div>
 
     <div class="col-md-4">
@@ -310,4 +324,56 @@
         </div>
     </div>
 </div>
+
+<!-- Modal para Adicionar Anexo -->
+<div class="modal fade" id="adicionarAnexoModal" tabindex="-1" aria-labelledby="adicionarAnexoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="adicionarAnexoModalLabel">Adicionar Anexo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('servicos.anexos.store', $servico) }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="anexo" class="form-label">Arquivo *</label>
+                        <input type="file" class="form-control" id="anexo" name="anexo" accept="*" required>
+                        <div class="form-text">
+                            Formatos aceitos: todos os tipos de arquivo. Tamanho máximo: 10MB.
+                            Você pode adicionar até {{ 5 - $servico->anexos->count() }} anexo(s) restante(s).
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="descricao" class="form-label">Descrição (opcional)</label>
+                        <input type="text" class="form-control" id="descricao" name="descricao" placeholder="Descrição do arquivo">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload me-1"></i>Enviar Anexo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
+
+@push('styles')
+<style>
+    .badge-pago {
+        background-color: #28a745;
+        color: white;
+    }
+    .badge-pendente {
+        background-color: #ffc107;
+        color: black;
+    }
+    .badge-nao-pago {
+        background-color: #dc3545;
+        color: white;
+    }
+</style>
+@endpush

@@ -294,10 +294,22 @@
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <i class="fas fa-user text-danger me-2"></i>
-                                        <span>{{ Str::limit($parcela->servico->cliente->nome, 15) }}</span>
+                                        <span>
+                                            @if($parcela->servico && $parcela->servico->cliente)
+                                                {{ Str::limit($parcela->servico->cliente->nome, 15) }}
+                                            @else
+                                                <span class="text-muted">Cliente não encontrado</span>
+                                            @endif
+                                        </span>
                                     </div>
                                 </td>
-                                <td>{{ Str::limit($parcela->servico->nome, 20) }}</td>
+                                <td>
+                                    @if($parcela->servico)
+                                        {{ Str::limit($parcela->servico->descricao, 20) }}
+                                    @else
+                                        <span class="text-muted">Serviço não encontrado</span>
+                                    @endif
+                                </td>
                                 <td>
                                     <span class="badge bg-dark">
                                         {{ $parcela->numero_parcela }}/{{ $parcela->total_parcelas }}
@@ -356,10 +368,22 @@
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <i class="fas fa-user text-info me-2"></i>
-                                        <span>{{ Str::limit($parcela->servico->cliente->nome, 15) }}</span>
+                                        <span>
+                                            @if($parcela->servico && $parcela->servico->cliente)
+                                                {{ Str::limit($parcela->servico->cliente->nome, 15) }}
+                                            @else
+                                                <span class="text-muted">Cliente não encontrado</span>
+                                            @endif
+                                        </span>
                                     </div>
                                 </td>
-                                <td>{{ Str::limit($parcela->servico->nome, 20) }}</td>
+                                <td>
+                                    @if($parcela->servico)
+                                        {{ Str::limit($parcela->servico->descricao, 20) }}
+                                    @else
+                                        <span class="text-muted">Serviço não encontrado</span>
+                                    @endif
+                                </td>
                                 <td>
                                     <span class="badge bg-dark">
                                         {{ $parcela->numero_parcela }}/{{ $parcela->total_parcelas }}

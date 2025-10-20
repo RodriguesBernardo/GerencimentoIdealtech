@@ -277,8 +277,8 @@ class ServicoController extends Controller
             'datas_parcelas.*' => 'nullable|date',
             'observacoes' => 'nullable|string',
             'pago_at' => 'nullable|date',
-            'anexos' => 'nullable|array|max:5',
-            'anexos.*' => 'file|max:2480', // 10MB max por arquivo
+            'anexos' => 'nullable|array|max:5', 
+            'anexos.*' => 'file|max:10240',
             'descricoes_anexos' => 'nullable|array',
             'descricoes_anexos.*' => 'nullable|string|max:255'
         ]);
@@ -345,116 +345,148 @@ class ServicoController extends Controller
 
     public function update(Request $request, Servico $servico)
     {
-        // Regras base de validação
-        $rules = [
-            'cliente_id' => 'required|exists:clientes,id',
-            'descricao' => 'required|string',
-            'data_servico' => 'required|date',
-            'status_pagamento' => 'required|in:pago,nao_pago,pendente',
-            'observacao_pagamento' => 'nullable|string',
-            'valor' => 'nullable|numeric|min:0',
-            'tipo_pagamento' => 'required|in:avista,parcelado',
-            'observacoes' => 'nullable|string',
-            'pago_at' => 'nullable|date',
-            'anexos' => 'nullable|array|max:5',
-            'anexos.*' => 'file|max:10240', // 10MB max por arquivo
-            'descricoes_anexos' => 'nullable|array',
-            'descricoes_anexos.*' => 'nullable|string|max:255'
-        ];
+        \Log::info('=== UPDATE SERVICO INICIADO ===');
+        \Log::info('Serviço ID: ' . $servico->id);
+        \Log::info('Dados recebidos:', $request->except(['anexos'])); // Exclui anexos do log por segurança
 
-        // Validação condicional para campos de parcelamento
-        if ($request->tipo_pagamento === 'parcelado') {
-            $rules['parcelas'] = 'required|integer|min:2|max:24';
-            $rules['data_primeiro_vencimento'] = 'required|date';
-            $rules['datas_parcelas'] = 'nullable|array';
-            $rules['datas_parcelas.*'] = 'nullable|date';
-        } else {
-            // Para à vista, parcelas é sempre 1
-            $rules['parcelas'] = 'sometimes|integer|min:1|max:1';
-            $request->merge(['parcelas' => 1]);
-        }
+        try {
+            // Calcula quantos anexos já existem
+            $anexosExistentesCount = $servico->anexos()->count();
+            $maxAnexosPermitidos = 5;
+            $maxNovosAnexos = max(0, $maxAnexosPermitidos - $anexosExistentesCount);
 
-        $validated = $request->validate($rules);
+            // Regras base de validação
+            $rules = [
+                'cliente_id' => 'required|exists:clientes,id',
+                'descricao' => 'required|string|max:255',
+                'data_servico' => 'required|date',
+                'status_pagamento' => 'required|in:pago,nao_pago,pendente',
+                'observacao_pagamento' => 'nullable|string|max:500',
+                'valor' => 'nullable|numeric|min:0',
+                'tipo_pagamento' => 'required|in:avista,parcelado',
+                'observacoes' => 'nullable|string',
+                'pago_at' => 'nullable|date',
+                'anexos' => 'nullable|array|max:' . $maxNovosAnexos,
+                'anexos.*' => 'file|max:10240', // 10MB max por arquivo
+                'descricoes_anexos' => 'nullable|array',
+                'descricoes_anexos.*' => 'nullable|string|max:255'
+            ];
 
-        // Remove o campo 'nome' se ele existir no array validado
-        unset($validated['nome']);
-
-        // Converte valor vazio para null
-        if (empty($validated['valor'])) {
-            $validated['valor'] = null;
-        }
-
-        // Garante que parcelas seja 1 para pagamento à vista
-        if ($validated['tipo_pagamento'] === 'avista') {
-            $validated['parcelas'] = 1;
-        }
-
-        // Lógica para a data de pagamento
-        if ($validated['status_pagamento'] === 'pago') {
-            // Se está marcando como pago e não tem data, usa a data atual
-            if (empty($validated['pago_at']) && $servico->status_pagamento !== 'pago') {
-                $validated['pago_at'] = now();
+            // Validação condicional para campos de parcelamento
+            if ($request->tipo_pagamento === 'parcelado') {
+                $rules['parcelas'] = 'required|integer|min:2|max:24';
+                $rules['data_primeiro_vencimento'] = 'required|date';
+                $rules['datas_parcelas'] = 'nullable|array';
+                $rules['datas_parcelas.*'] = 'nullable|date';
+            } else {
+                // Para à vista, parcelas é sempre 1
+                $rules['parcelas'] = 'sometimes|integer|min:1|max:1';
             }
-            // Se está mantendo como pago mas removeu a data, mantém a data existente
-            elseif (empty($validated['pago_at']) && $servico->status_pagamento === 'pago') {
-                $validated['pago_at'] = $servico->pago_at;
+
+            $validated = $request->validate($rules);
+
+            \Log::info('Validação passou, dados validados:', $validated);
+
+            // Remove campos desnecessários
+            unset($validated['nome']);
+
+            // Converte valor vazio para null
+            if (empty($validated['valor'])) {
+                $validated['valor'] = null;
             }
-        } else {
-            // Se não está como pago, limpa a data
-            $validated['pago_at'] = null;
-        }
 
-        // Remove campos que não existem na tabela
-        $dataPrimeiroVencimento = $validated['data_primeiro_vencimento'] ?? null;
-        $datasParcelas = $validated['datas_parcelas'] ?? [];
-        $anexos = $request->file('anexos') ?? [];
-        $descricoesAnexos = $validated['descricoes_anexos'] ?? [];
-        
-        unset($validated['data_primeiro_vencimento'], $validated['datas_parcelas'], $validated['anexos'], $validated['descricoes_anexos']);
+            // Garante que parcelas seja 1 para pagamento à vista
+            if ($validated['tipo_pagamento'] === 'avista') {
+                $validated['parcelas'] = 1;
+            }
 
-        // Atualiza o serviço
-        $servico->update($validated);
-
-        // Recria as parcelas se necessário
-        if ($servico->tipo_pagamento === 'parcelado' && $servico->parcelas > 1) {
-            // Prepara o array de datas começando do índice 1
-            $datasVencimento = [1 => $dataPrimeiroVencimento];
-            
-            // Adiciona as demais datas das parcelas
-            foreach ($datasParcelas as $index => $data) {
-                if ($data) {
-                    $datasVencimento[$index] = $data;
+            // Lógica para a data de pagamento
+            if ($validated['status_pagamento'] === 'pago') {
+                // Se está marcando como pago e não tem data, usa a data atual
+                if (empty($validated['pago_at']) && $servico->status_pagamento !== 'pago') {
+                    $validated['pago_at'] = now();
                 }
-            }
-            
-            // Garante que temos todas as datas necessárias
-            for ($i = 2; $i <= $servico->parcelas; $i++) {
-                if (!isset($datasVencimento[$i]) || empty($datasVencimento[$i])) {
-                    // Calcula uma data baseada na primeira parcela + (i-1) meses
-                    $dataBase = new \DateTime($dataPrimeiroVencimento);
-                    $dataBase->modify('+' . ($i - 1) . ' months');
-                    $datasVencimento[$i] = $dataBase->format('Y-m-d');
+                // Se está mantendo como pago mas removeu a data, mantém a data existente
+                elseif (empty($validated['pago_at']) && $servico->status_pagamento === 'pago') {
+                    $validated['pago_at'] = $servico->pago_at;
                 }
+            } else {
+                // Se não está como pago, limpa a data
+                $validated['pago_at'] = null;
             }
+
+            // Remove campos extras antes de atualizar o serviço
+            $dataPrimeiroVencimento = $validated['data_primeiro_vencimento'] ?? null;
+            $datasParcelas = $validated['datas_parcelas'] ?? [];
+            $anexos = $request->file('anexos') ?? [];
+            $descricoesAnexos = $validated['descricoes_anexos'] ?? [];
             
-            // Remove parcelas existentes e cria novas
-            $servico->parcelasServico()->delete();
-            $servico->criarParcelas($datasVencimento);
-        } else {
-            // Se não é parcelado, remove todas as parcelas
-            $servico->parcelasServico()->delete();
-        }
+            unset(
+                $validated['data_primeiro_vencimento'], 
+                $validated['datas_parcelas'], 
+                $validated['anexos'], 
+                $validated['descricoes_anexos']
+            );
 
-        // Upload de novos anexos
-        if (!empty($anexos)) {
-            $this->processarAnexos($servico, $anexos, $descricoesAnexos);
-        }
+            // Atualiza o serviço
+            $servico->update($validated);
+            \Log::info('Serviço atualizado com sucesso');
 
-        return redirect()->route('servicos.show', $servico)
-            ->with('success', 'Serviço atualizado com sucesso!');
+            // Recria as parcelas se necessário
+            if ($servico->tipo_pagamento === 'parcelado' && $servico->parcelas > 1) {
+                // Prepara o array de datas começando do índice 1
+                $datasVencimento = [1 => $dataPrimeiroVencimento];
+                
+                // Adiciona as demais datas das parcelas
+                foreach ($datasParcelas as $index => $data) {
+                    if ($data) {
+                        $datasVencimento[$index] = $data;
+                    }
+                }
+                
+                // Garante que temos todas as datas necessárias
+                for ($i = 2; $i <= $servico->parcelas; $i++) {
+                    if (!isset($datasVencimento[$i]) || empty($datasVencimento[$i])) {
+                        // Calcula uma data baseada na primeira parcela + (i-1) meses
+                        $dataBase = new \DateTime($dataPrimeiroVencimento);
+                        $dataBase->modify('+' . ($i - 1) . ' months');
+                        $datasVencimento[$i] = $dataBase->format('Y-m-d');
+                    }
+                }
+                
+                // Remove parcelas existentes e cria novas
+                $servico->parcelasServico()->delete();
+                $servico->criarParcelas($datasVencimento);
+                \Log::info('Parcelas recriadas com sucesso');
+            } else {
+                // Se não é parcelado, remove todas as parcelas
+                $servico->parcelasServico()->delete();
+                \Log::info('Parcelas removidas (serviço à vista)');
+            }
+
+            // Upload de novos anexos (se ainda houver espaço)
+            if (!empty($anexos) && $maxNovosAnexos > 0) {
+                $this->processarAnexos($servico, $anexos, $descricoesAnexos);
+                \Log::info('Anexos processados com sucesso');
+            }
+
+            \Log::info('=== UPDATE SERVICO CONCLUÍDO COM SUCESSO ===');
+
+            return redirect()->route('servicos.show', $servico)
+                ->with('success', 'Serviço atualizado com sucesso!');
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Erro de validação no update:', $e->errors());
+            throw $e;
+        } catch (\Exception $e) {
+            \Log::error('Erro geral no update do serviço: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            
+            return back()->withErrors(['error' => 'Erro ao atualizar serviço: ' . $e->getMessage()])->withInput();
+        }
     }
 
-        private function processarAnexos(Servico $servico, $anexos, $descricoesAnexos)
+    private function processarAnexos(Servico $servico, $anexos, $descricoesAnexos)
     {
         foreach ($anexos as $index => $anexo) {
             if ($anexo->isValid()) {
@@ -559,6 +591,43 @@ class ServicoController extends Controller
         ->get(['id', 'nome', 'email', 'telefone']);
 
         return response()->json($clientes);
+    }
+
+    public function storeAnexo(Request $request, Servico $servico)
+    {
+        // Verifica se já atingiu o limite de 5 anexos
+        if ($servico->anexos()->count() >= 5) {
+            return back()->with('error', 'Limite máximo de 5 anexos atingido para este serviço.');
+        }
+
+        $request->validate([
+            'anexo' => 'required|file|max:10240', // 10MB max
+            'descricao' => 'nullable|string|max:255'
+        ]);
+
+        try {
+            $anexo = $request->file('anexo');
+            
+            if ($anexo->isValid()) {
+                $nomeOriginal = $anexo->getClientOriginalName();
+                $caminho = $anexo->store('anexos_servicos', 'public');
+                $descricao = $request->descricao;
+
+                $servico->anexos()->create([
+                    'nome_arquivo' => $nomeOriginal,
+                    'caminho_arquivo' => $caminho,
+                    'mime_type' => $anexo->getMimeType(),
+                    'tamanho' => $anexo->getSize(),
+                    'descricao' => $descricao,
+                ]);
+
+                return back()->with('success', 'Anexo adicionado com sucesso!');
+            }
+        } catch (\Exception $e) {
+            return back()->with('error', 'Erro ao fazer upload do anexo: ' . $e->getMessage());
+        }
+
+        return back()->with('error', 'Erro ao processar o arquivo.');
     }
 
     

@@ -27,18 +27,28 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/clientes/search-ajax', [ClienteController::class, 'searchAjax'])->name('clientes.search-ajax');
     Route::resource('clientes', ClienteController::class);
     
-    // Serviços
-    Route::resource('servicos', ServicoController::class);
+    // Serviços - CORREÇÃO: Definir rotas manualmente para evitar conflitos
+    Route::get('/servicos', [ServicoController::class, 'index'])->name('servicos.index');
+    Route::get('/servicos/create', [ServicoController::class, 'create'])->name('servicos.create');
+    Route::post('/servicos', [ServicoController::class, 'store'])->name('servicos.store');
+    Route::get('/servicos/{servico}', [ServicoController::class, 'show'])->name('servicos.show');
+    Route::get('/servicos/{servico}/edit', [ServicoController::class, 'edit'])->name('servicos.edit');
+    Route::put('/servicos/{servico}', [ServicoController::class, 'update'])->name('servicos.update'); // CORREÇÃO: Esta deve vir antes das rotas específicas
+    Route::delete('/servicos/{servico}', [ServicoController::class, 'destroy'])->name('servicos.destroy');
+    
+    // Rotas específicas de serviços (DEVEM VIR DEPOIS da rota update)
     Route::post('/servicos/{servico}/update-payment-status', [ServicoController::class, 'updatePaymentStatus'])->name('servicos.update-payment-status');
     Route::post('/servicos/{servico}/marcar-pago', [ServicoController::class, 'marcarPago'])->name('servicos.marcar-pago');
+    
     // Rotas de exportação 
     Route::get('/servicos/export/excel', [ServicoController::class, 'exportExcel'])->name('servicos.export.excel');
     Route::get('/servicos/export/pdf', [ServicoController::class, 'exportPdf'])->name('servicos.export.pdf');
-    // Rotas para anexos de serviços
+    
+    // Rotas para anexos de serviços 
     Route::get('servicos/{servico}/anexos/{anexo}/download', [ServicoController::class, 'downloadAnexo'])->name('servicos.anexos.download');
     Route::delete('servicos/{servico}/anexos/{anexo}', [ServicoController::class, 'destroyAnexo'])->name('servicos.anexos.destroy');
     Route::put('/servicos/{servico}/parcelas/atualizar-valores', [ServicoController::class, 'atualizarValoresParcelas'])->name('servicos.parcelas.atualizar-valores');
-
+    Route::post('/servicos/{servico}/anexos', [ServicoController::class, 'storeAnexo'])->name('servicos.anexos.store');
     // Parcelas
     Route::post('/parcelas/{parcela}/marcar-paga', [ParcelaController::class, 'marcarPaga'])->name('parcelas.marcar-paga');
     Route::post('/parcelas/{parcela}/marcar-pendente', [ParcelaController::class, 'marcarPendente'])->name('parcelas.marcar-pendente');
