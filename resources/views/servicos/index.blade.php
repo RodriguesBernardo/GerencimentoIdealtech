@@ -484,19 +484,17 @@
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
 
-        // Filtro automático
+        // Filtro automático apenas para busca
         const searchInput = document.querySelector('input[name="search"]');
         const statusFilter = document.querySelector('select[name="status"]');
         const tipoPagamentoFilter = document.querySelector('select[name="tipo_pagamento"]');
-        const dataInicial = document.querySelector('input[name="data_inicial"]');
-        const dataFinal = document.querySelector('input[name="data_final"]');
         const filterForm = document.getElementById('filterForm');
 
         function aplicarFiltros() {
             filterForm.submit();
         }
 
-        // Busca automática após parar de digitar
+        // Busca automática após parar de digitar (apenas para o campo de busca)
         let searchTimeout;
         if (searchInput) {
             searchInput.addEventListener('input', function() {
@@ -505,11 +503,10 @@
             });
         }
 
-        // Filtros por select e data
+        // Filtros por select (mudanças imediatas)
         if (statusFilter) statusFilter.addEventListener('change', aplicarFiltros);
         if (tipoPagamentoFilter) tipoPagamentoFilter.addEventListener('change', aplicarFiltros);
-        if (dataInicial) dataInicial.addEventListener('change', aplicarFiltros);
-        if (dataFinal) dataFinal.addEventListener('change', aplicarFiltros);
+
     });
 </script>
 @endpush

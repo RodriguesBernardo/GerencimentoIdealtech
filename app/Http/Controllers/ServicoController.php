@@ -280,7 +280,11 @@ class ServicoController extends Controller
             'anexos' => 'nullable|array|max:5', 
             'anexos.*' => 'file|max:10240',
             'descricoes_anexos' => 'nullable|array',
-            'descricoes_anexos.*' => 'nullable|string|max:255'
+            'descricoes_anexos.*' => 'nullable|string|max:255',
+            'servico_recorrente' => 'nullable|boolean',
+            'frequencia' => 'nullable|in:mensal,bimestral,trimestral,semestral,anual',
+            'quantidade_repeticoes' => 'nullable|integer|min:1|max:60',
+            'data_final' => 'nullable|date|after:data_servico'
         ]);
 
         // Remove campos desnecessários
@@ -308,9 +312,23 @@ class ServicoController extends Controller
         $datasParcelas = $validated['datas_parcelas'] ?? [];
         $anexos = $request->file('anexos') ?? [];
         $descricoesAnexos = $validated['descricoes_anexos'] ?? [];
+        $servicoRecorrente = $validated['servico_recorrente'] ?? false;
+        $frequencia = $validated['frequencia'] ?? null;
+        $quantidadeRepeticoes = $validated['quantidade_repeticoes'] ?? null;
+        $dataFinal = $validated['data_final'] ?? null;
         
-        unset($validated['data_primeiro_vencimento'], $validated['datas_parcelas'], $validated['anexos'], $validated['descricoes_anexos']);
+        unset(
+            $validated['data_primeiro_vencimento'], 
+            $validated['datas_parcelas'], 
+            $validated['anexos'], 
+            $validated['descricoes_anexos'],
+            $validated['servico_recorrente'],
+            $validated['frequencia'],
+            $validated['quantidade_repeticoes'],
+            $validated['data_final']
+        );
 
+        // Cria o serviço principal
         $servico = Servico::create($validated);
 
         // Cria parcelas se for parcelado
@@ -318,13 +336,136 @@ class ServicoController extends Controller
             $servico->criarParcelas([1 => $dataPrimeiroVencimento] + $datasParcelas);
         }
 
+        // Cria serviços recorrentes se necessário
+        if ($servicoRecorrente && $frequencia) {
+            $totalServicos = $this->criarServicosRecorrentes(
+                $servico, 
+                $frequencia, 
+                $quantidadeRepeticoes, 
+                $dataFinal
+            );
+            
+            $mensagemSucesso = 'Serviço cadastrado com sucesso!';
+            if ($totalServicos > 0) {
+                $mensagemSucesso .= " + {$totalServicos} serviços recorrentes criados.";
+            }
+        } else {
+            $mensagemSucesso = 'Serviço cadastrado com sucesso!';
+        }
+
         // Upload de anexos
         if (!empty($anexos)) {
             $this->processarAnexos($servico, $anexos, $descricoesAnexos);
         }
 
-        return redirect()->route('servicos.index')
-            ->with('success', 'Serviço cadastrado com sucesso!');
+        return redirect()->route('servicos.index')->with('success', $mensagemSucesso);
+    }
+
+    private function criarServicosRecorrentes(Servico $servicoOriginal, $frequencia, $quantidadeRepeticoes = null, $dataFinal = null)
+    {
+        $mesesPorFrequencia = [
+            'mensal' => 1,
+            'bimestral' => 2,
+            'trimestral' => 3,
+            'semestral' => 6,
+            'anual' => 12
+        ];
+
+        $meses = $mesesPorFrequencia[$frequencia] ?? 1;
+        
+        // Calcula o número total de serviços a criar (incluindo o original)
+        $totalServicos = $this->calcularTotalServicos(
+            $servicoOriginal->data_servico,
+            $quantidadeRepeticoes,
+            $dataFinal,
+            $meses
+        );
+
+        $servicosCriados = 0;
+
+        // Cria os serviços recorrentes (começando do 1, pois o 0 é o serviço original)
+        for ($i = 1; $i < $totalServicos; $i++) {
+            try {
+                // Calcula a data para este serviço recorrente
+                $dataServico = (clone $servicoOriginal->data_servico)->addMonths($meses * $i);
+                
+                // Se tem data final e a data calculada ultrapassa, para
+                if ($dataFinal && $dataServico->gt(new \Carbon\Carbon($dataFinal))) {
+                    break;
+                }
+
+                // Cria o novo serviço recorrente
+                $dadosServico = $servicoOriginal->toArray();
+                
+                // Remove campos que não devem ser replicados
+                unset($dadosServico['id'], $dadosServico['created_at'], $dadosServico['updated_at']);
+                
+                // Atualiza a data do serviço
+                $dadosServico['data_servico'] = $dataServico;
+                $dadosServico['created_at'] = now();
+                $dadosServico['updated_at'] = now();
+                
+                // Cria o serviço
+                $novoServico = Servico::create($dadosServico);
+
+                // Se for parcelado, cria as parcelas com datas corretas
+                if ($novoServico->tipo_pagamento === 'parcelado' && $novoServico->parcelas > 1) {
+                    $this->criarParcelasRecorrentes($novoServico, $servicoOriginal, $i, $meses);
+                }
+
+                $servicosCriados++;
+
+            } catch (\Exception $e) {
+                \Log::error("Erro ao criar serviço recorrente {$i}: " . $e->getMessage());
+                continue;
+            }
+        }
+
+        return $servicosCriados;
+    }
+
+    private function calcularTotalServicos($dataInicial, $quantidadeRepeticoes, $dataFinal, $mesesPorRepeticao)
+    {
+        if ($quantidadeRepeticoes) {
+            return $quantidadeRepeticoes + 1; // +1 para incluir o serviço original
+        }
+
+        if ($dataFinal) {
+            $dataInicio = \Carbon\Carbon::parse($dataInicial);
+            $dataFim = \Carbon\Carbon::parse($dataFinal);
+            
+            $diferencaMeses = $dataInicio->diffInMonths($dataFim);
+            $totalServicos = floor($diferencaMeses / $mesesPorRepeticao) + 1; // +1 para o original
+            
+            return min($totalServicos, 60); // Limite máximo de 60 serviços
+        }
+
+        return 13; // padrão: 1 ano (12 meses + o original)
+    }
+
+    private function criarParcelasRecorrentes(Servico $servico, Servico $servicoOriginal, $numeroRepeticao, $mesesPorFrequencia)
+    {
+        // Busca as parcelas do serviço original para replicar a estrutura
+        $parcelasOriginais = $servicoOriginal->parcelasServico;
+        
+        if ($parcelasOriginais->isEmpty()) {
+            return;
+        }
+
+        foreach ($parcelasOriginais as $parcelaOriginal) {
+            // Calcula a data de vencimento baseada na repetição atual
+            $mesesAdicionais = $mesesPorFrequencia * $numeroRepeticao;
+            $dataVencimento = (clone $parcelaOriginal->data_vencimento)->addMonths($mesesAdicionais);
+            
+            $servico->parcelasServico()->create([
+                'numero_parcela' => $parcelaOriginal->numero_parcela,
+                'total_parcelas' => $parcelaOriginal->total_parcelas,
+                'valor_parcela' => $parcelaOriginal->valor_parcela,
+                'data_vencimento' => $dataVencimento,
+                'status' => 'pendente',
+                'data_pagamento' => null,
+            ]);
+        }
     }
 
     public function show(Servico $servico)

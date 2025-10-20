@@ -550,54 +550,89 @@
             let infoHTML = `<strong>Resumo da Recorrência:</strong><br>`;
             infoHTML += `<strong>Frequência:</strong> ${getFrequenciaTexto(frequencia)}<br>`;
             
+            // Calcula o total de repetições
+            let totalRepeticoes = quantidade;
+            let dataFinalCalculada = dataFinal;
+            
             if (dataFinal) {
-                const dataInicialObj = new Date(dataInicial);
-                const dataFinalObj = new Date(dataFinal);
-                const diffTime = Math.abs(dataFinalObj - dataInicialObj);
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                const repeticoes = calcularRepeticoesPorData(dataInicial, dataFinal, frequencia);
-                
-                infoHTML += `<strong>Data final:</strong> ${formatarData(dataFinal)}<br>`;
-                infoHTML += `<strong>Repetições:</strong> ${repeticoes}<br><br>`;
-                infoHTML += `<strong>Próximas datas:</strong><br>`;
-                
-                let dataAtual = new Date(dataInicial);
-                for (let i = 0; i < Math.min(repeticoes, 6); i++) {
-                    infoHTML += `${i + 1}. ${formatarData(dataAtual.toISOString().split('T')[0])}<br>`;
-                    dataAtual = calcularProximaData(dataAtual, frequencia);
-                }
-                
-                if (repeticoes > 6) {
-                    infoHTML += `... e mais ${repeticoes - 6} repetições<br>`;
-                }
+                totalRepeticoes = calcularTotalRepeticoesPorData(dataInicial, dataFinal, frequencia);
+                dataFinalCalculada = dataFinal;
             } else {
-                infoHTML += `<strong>Quantidade:</strong> ${quantidade} repetições<br><br>`;
-                infoHTML += `<strong>Próximas datas:</strong><br>`;
-                
-                let dataAtual = new Date(dataInicial);
-                for (let i = 0; i < Math.min(quantidade, 6); i++) {
+                dataFinalCalculada = calcularDataFinal(dataInicial, frequencia, quantidade);
+            }
+            
+            infoHTML += `<strong>Total de serviços:</strong> ${totalRepeticoes}<br>`;
+            
+            if (dataFinalCalculada) {
+                infoHTML += `<strong>Data final:</strong> ${formatarData(dataFinalCalculada)}<br>`;
+            }
+            
+            infoHTML += `<br><strong>Próximas datas dos serviços:</strong><br>`;
+            
+            let dataAtual = new Date(dataInicial);
+            for (let i = 0; i < Math.min(totalRepeticoes, 12); i++) {
+                if (i === 0) {
+                    // Primeiro serviço (original)
+                    infoHTML += `${i + 1}. ${formatarData(dataInicial)} (original)<br>`;
+                } else {
+                    // Serviços recorrentes
+                    dataAtual = calcularProximaDataRecorrente(new Date(dataInicial), frequencia, i);
                     infoHTML += `${i + 1}. ${formatarData(dataAtual.toISOString().split('T')[0])}<br>`;
-                    dataAtual = calcularProximaData(dataAtual, frequencia);
                 }
-                
-                if (quantidade > 6) {
-                    infoHTML += `... e mais ${quantidade - 6} repetições<br>`;
-                }
-                
-                // Calcular data final aproximada
-                const dataFinalCalculada = calcularProximaData(new Date(dataInicial), frequencia, quantidade - 1);
-                infoHTML += `<br><strong>Data final aproximada:</strong> ${formatarData(dataFinalCalculada.toISOString().split('T')[0])}`;
+            }
+            
+            if (totalRepeticoes > 12) {
+                infoHTML += `... e mais ${totalRepeticoes - 12} serviços<br>`;
             }
 
             $('#recorrencia_info').html(infoHTML);
         }
 
+        function calcularTotalRepeticoesPorData(dataInicial, dataFinal, frequencia) {
+            const inicio = new Date(dataInicial);
+            const fim = new Date(dataFinal);
+            let repeticoes = 1; // Começa com 1 (o serviço original)
+            let dataAtual = new Date(inicio);
+
+            while (true) {
+                dataAtual = calcularProximaDataRecorrente(new Date(dataInicial), frequencia, repeticoes);
+                if (dataAtual > fim) break;
+                repeticoes++;
+                
+                // Limite de segurança
+                if (repeticoes > 120) break;
+            }
+
+            return repeticoes;
+        }
+
+        function calcularDataFinal(dataInicial, frequencia, quantidade) {
+            const dataFinal = calcularProximaDataRecorrente(new Date(dataInicial), frequencia, quantidade - 1);
+            return dataFinal.toISOString().split('T')[0];
+        }
+
+        function calcularProximaDataRecorrente(dataBase, frequencia, numeroRepeticao) {
+            const novaData = new Date(dataBase);
+            const meses = {
+                'mensal': 1,
+                'bimestral': 2,
+                'trimestral': 3,
+                'semestral': 6,
+                'anual': 12
+            };
+
+            const mesesParaAdicionar = meses[frequencia] * numeroRepeticao;
+            novaData.setMonth(novaData.getMonth() + mesesParaAdicionar);
+            
+            return novaData;
+        }
+
         function getFrequenciaTexto(frequencia) {
             const frequencias = {
                 'mensal': 'Mensal',
-                'bimestral': 'Bimestral (a cada 2 meses)',
-                'trimestral': 'Trimestral (a cada 3 meses)',
-                'semestral': 'Semestral (a cada 6 meses)',
+                'bimestral': 'Bimestral',
+                'trimestral': 'Trimestral', 
+                'semestral': 'Semestral',
                 'anual': 'Anual'
             };
             return frequencias[frequencia] || frequencia;
