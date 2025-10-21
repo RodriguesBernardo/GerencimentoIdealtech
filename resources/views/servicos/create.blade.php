@@ -775,33 +775,11 @@
                     
                     // Calcula a soma dos valores atuais
                     let somaAtual = 0;
-                    const valoresAtuais = [];
-                    const inputAtual = $(this);
-                    
-                    $('.valor-parcela-input').each(function(index) {
+                    $('.valor-parcela-input').each(function() {
                         const valor = parseFloat($(this).val()) || 0;
-                        valoresAtuais[index] = valor;
                         somaAtual += valor;
                     });
-                    
-                    // Se a soma for diferente do total, redistribui
-                    if (Math.abs(somaAtual - valorTotal) > 0.01) {
-                        const diferenca = valorTotal - somaAtual;
-                        const outrasParcelas = $('.valor-parcela-input').not(inputAtual).length;
-                        
-                        if (outrasParcelas > 0) {
-                            const ajustePorParcela = diferenca / outrasParcelas;
-                            
-                            $('.valor-parcela-input').each(function(index) {
-                                if (!$(this).is(inputAtual)) {
-                                    const novoValor = (valoresAtuais[index] || 0) + ajustePorParcela;
-                                    $(this).val(Math.max(novoValor, 0.01).toFixed(2));
-                                }
-                            });
-                        }
-                    }
-                    
-                    // Atualiza o display
+
                     const dataPrimeiroVencimento = $('#data_primeiro_vencimento').val();
                     atualizarDisplayParcelas(valorTotal, numParcelas, dataPrimeiroVencimento);
                     
@@ -872,9 +850,13 @@
                 </div>`;
             }
             
-            // Verificação de consistência
+            // Verificação de consistência (apenas aviso, não corrige)
             if (Math.abs(somaValores - valorTotal) > 0.01) {
-                infoHTML += `<div class="text-danger mt-2"><i class="fas fa-exclamation-triangle me-1"></i>A soma das parcelas (R$ ${somaValores.toFixed(2)}) não corresponde ao valor total!</div>`;
+                infoHTML += `<div class="text-danger mt-2">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    A soma das parcelas (R$ ${somaValores.toFixed(2)}) não corresponde ao valor total (R$ ${valorTotal.toFixed(2)}).
+                    <br><small>Use o botão "Calcular Automaticamente" para ajustar os valores.</small>
+                </div>`;
             }
             
             $('#parcela_info').html(infoHTML);
@@ -982,20 +964,6 @@
                     alert('Para pagamento parcelado, é necessário pelo menos 2 parcelas.');
                     $('#parcelas').focus();
                     return false;
-                }
-                
-                // Verifica se a soma das parcelas corresponde ao valor total
-                if ($('#customizar_parcelas').is(':checked')) {
-                    let somaValores = 0;
-                    $('.valor-parcela-input').each(function() {
-                        somaValores += parseFloat($(this).val()) || 0;
-                    });
-                    
-                    if (Math.abs(somaValores - valorTotal) > 0.01) {
-                        e.preventDefault();
-                        alert(`A soma das parcelas (R$ ${somaValores.toFixed(2)}) não corresponde ao valor total (R$ ${valorTotal.toFixed(2)}). Por favor, ajuste os valores.`);
-                        return false;
-                    }
                 }
             }
             

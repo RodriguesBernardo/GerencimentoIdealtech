@@ -275,6 +275,8 @@ class ServicoController extends Controller
             'data_primeiro_vencimento' => 'nullable|date',
             'datas_parcelas' => 'nullable|array',
             'datas_parcelas.*' => 'nullable|date',
+            'valores_parcelas' => 'nullable|array', // ADICIONADO
+            'valores_parcelas.*' => 'nullable|numeric|min:0.01', // ADICIONADO
             'observacoes' => 'nullable|string',
             'pago_at' => 'nullable|date',
             'anexos' => 'nullable|array|max:5', 
@@ -307,9 +309,10 @@ class ServicoController extends Controller
             $validated['pago_at'] = null;
         }
 
-        // Remove campos extras
+        // CAPTURA OS CAMPOS EXTRAS
         $dataPrimeiroVencimento = $validated['data_primeiro_vencimento'] ?? null;
         $datasParcelas = $validated['datas_parcelas'] ?? [];
+        $valoresParcelas = $validated['valores_parcelas'] ?? []; // NOVO
         $anexos = $request->file('anexos') ?? [];
         $descricoesAnexos = $validated['descricoes_anexos'] ?? [];
         $servicoRecorrente = $validated['servico_recorrente'] ?? false;
@@ -320,6 +323,7 @@ class ServicoController extends Controller
         unset(
             $validated['data_primeiro_vencimento'], 
             $validated['datas_parcelas'], 
+            $validated['valores_parcelas'], // NOVO
             $validated['anexos'], 
             $validated['descricoes_anexos'],
             $validated['servico_recorrente'],
@@ -331,9 +335,12 @@ class ServicoController extends Controller
         // Cria o serviço principal
         $servico = Servico::create($validated);
 
-        // Cria parcelas se for parcelado
+        // Cria parcelas se for parcelado - PASSA OS VALORES PERSONALIZADOS
         if ($servico->tipo_pagamento === 'parcelado' && $servico->parcelas > 1) {
-            $servico->criarParcelas([1 => $dataPrimeiroVencimento] + $datasParcelas);
+            $servico->criarParcelas(
+                [1 => $dataPrimeiroVencimento] + $datasParcelas,
+                $valoresParcelas // NOVO PARÂMETRO
+            );
         }
 
         // Cria serviços recorrentes se necessário
@@ -467,7 +474,6 @@ class ServicoController extends Controller
             ]);
         }
     }
-
     public function show(Servico $servico)
     {
         // Carrega as parcelas do serviço e o cliente
@@ -488,7 +494,7 @@ class ServicoController extends Controller
     {
         \Log::info('=== UPDATE SERVICO INICIADO ===');
         \Log::info('Serviço ID: ' . $servico->id);
-        \Log::info('Dados recebidos:', $request->except(['anexos'])); // Exclui anexos do log por segurança
+        \Log::info('Dados recebidos:', $request->except(['anexos']));
 
         try {
             // Calcula quantos anexos já existem
@@ -508,7 +514,7 @@ class ServicoController extends Controller
                 'observacoes' => 'nullable|string',
                 'pago_at' => 'nullable|date',
                 'anexos' => 'nullable|array|max:' . $maxNovosAnexos,
-                'anexos.*' => 'file|max:10240', // 10MB max por arquivo
+                'anexos.*' => 'file|max:10240',
                 'descricoes_anexos' => 'nullable|array',
                 'descricoes_anexos.*' => 'nullable|string|max:255'
             ];
@@ -519,6 +525,8 @@ class ServicoController extends Controller
                 $rules['data_primeiro_vencimento'] = 'required|date';
                 $rules['datas_parcelas'] = 'nullable|array';
                 $rules['datas_parcelas.*'] = 'nullable|date';
+                $rules['valores_parcelas'] = 'nullable|array'; // ADICIONADO
+                $rules['valores_parcelas.*'] = 'nullable|numeric|min:0.01'; // ADICIONADO
             } else {
                 // Para à vista, parcelas é sempre 1
                 $rules['parcelas'] = 'sometimes|integer|min:1|max:1';
@@ -559,12 +567,14 @@ class ServicoController extends Controller
             // Remove campos extras antes de atualizar o serviço
             $dataPrimeiroVencimento = $validated['data_primeiro_vencimento'] ?? null;
             $datasParcelas = $validated['datas_parcelas'] ?? [];
+            $valoresParcelas = $validated['valores_parcelas'] ?? []; // NOVO
             $anexos = $request->file('anexos') ?? [];
             $descricoesAnexos = $validated['descricoes_anexos'] ?? [];
             
             unset(
                 $validated['data_primeiro_vencimento'], 
                 $validated['datas_parcelas'], 
+                $validated['valores_parcelas'], // NOVO
                 $validated['anexos'], 
                 $validated['descricoes_anexos']
             );
@@ -573,7 +583,7 @@ class ServicoController extends Controller
             $servico->update($validated);
             \Log::info('Serviço atualizado com sucesso');
 
-            // Recria as parcelas se necessário
+            // Recria as parcelas se necessário - PASSA OS VALORES PERSONALIZADOS
             if ($servico->tipo_pagamento === 'parcelado' && $servico->parcelas > 1) {
                 // Prepara o array de datas começando do índice 1
                 $datasVencimento = [1 => $dataPrimeiroVencimento];
@@ -595,9 +605,9 @@ class ServicoController extends Controller
                     }
                 }
                 
-                // Remove parcelas existentes e cria novas
+                // Remove parcelas existentes e cria novas COM VALORES PERSONALIZADOS
                 $servico->parcelasServico()->delete();
-                $servico->criarParcelas($datasVencimento);
+                $servico->criarParcelas($datasVencimento, $valoresParcelas); // NOVO PARÂMETRO
                 \Log::info('Parcelas recriadas com sucesso');
             } else {
                 // Se não é parcelado, remove todas as parcelas
@@ -626,6 +636,7 @@ class ServicoController extends Controller
             return back()->withErrors(['error' => 'Erro ao atualizar serviço: ' . $e->getMessage()])->withInput();
         }
     }
+
 
     private function processarAnexos(Servico $servico, $anexos, $descricoesAnexos)
     {

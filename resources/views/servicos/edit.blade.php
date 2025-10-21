@@ -529,35 +529,17 @@
                     
                     if (valorTotal <= 0 || numParcelas < 2) return;
                     
-                    // Calcula a soma dos valores atuais
+                    // Calcula a soma dos valores atuais (apenas para exibir no display)
                     let somaAtual = 0;
-                    const valoresAtuais = [];
-                    const inputAtual = $(this);
-                    
-                    $('.valor-parcela-input').each(function(index) {
+                    $('.valor-parcela-input').each(function() {
                         const valor = parseFloat($(this).val()) || 0;
-                        valoresAtuais[index] = valor;
                         somaAtual += valor;
                     });
                     
-                    // Se a soma for diferente do total, redistribui
-                    if (Math.abs(somaAtual - valorTotal) > 0.01) {
-                        const diferenca = valorTotal - somaAtual;
-                        const outrasParcelas = $('.valor-parcela-input').not(inputAtual).length;
-                        
-                        if (outrasParcelas > 0) {
-                            const ajustePorParcela = diferenca / outrasParcelas;
-                            
-                            $('.valor-parcela-input').each(function(index) {
-                                if (!$(this).is(inputAtual)) {
-                                    const novoValor = (valoresAtuais[index] || 0) + ajustePorParcela;
-                                    $(this).val(Math.max(novoValor, 0.01).toFixed(2));
-                                }
-                            });
-                        }
-                    }
+                    // REMOVIDO: A redistribuição automática dos valores
+                    // Agora os valores ficam exatamente como o usuário digitou
                     
-                    // Atualiza o display
+                    // Atualiza apenas o display
                     const dataPrimeiroVencimento = $('#data_primeiro_vencimento').val();
                     atualizarDisplayParcelas(valorTotal, numParcelas, dataPrimeiroVencimento);
                     

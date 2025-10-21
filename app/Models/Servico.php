@@ -100,30 +100,49 @@ class Servico extends Model
     }
 
     // Criar parcelas
-    public function criarParcelas($datasVencimento = [])
+    public function criarParcelas($datasVencimento, $valoresParcelas = [])
     {
-        if ($this->tipo_pagamento !== 'parcelado' || $this->parcelas <= 1) {
-            return;
-        }
-
-        // Deleta parcelas existentes
-        $this->parcelasServico()->delete();
-
-        $valorParcela = $this->valor / $this->parcelas;
-
-        for ($i = 1; $i <= $this->parcelas; $i++) {
-            $dataVencimento = isset($datasVencimento[$i]) 
-                ? \Carbon\Carbon::parse($datasVencimento[$i])
-                : \Carbon\Carbon::parse($datasVencimento[1])->addMonths($i - 1);
-
+        $valorTotal = $this->valor;
+        $numParcelas = $this->parcelas;
+        
+        // Calcula o valor padrão da parcela
+        $valorParcelaPadrao = $valorTotal / $numParcelas;
+        
+        \Log::info("Criando parcelas para serviço {$this->id}");
+        \Log::info("Valor total: {$valorTotal}, Parcelas: {$numParcelas}");
+        \Log::info("Valores personalizados recebidos:", $valoresParcelas);
+        
+        for ($i = 1; $i <= $numParcelas; $i++) {
+            // Determina a data de vencimento
+            if (isset($datasVencimento[$i]) && !empty($datasVencimento[$i])) {
+                $dataVencimento = $datasVencimento[$i];
+            } else {
+                // Calcula data automaticamente baseada na primeira parcela
+                $dataBase = new \DateTime($datasVencimento[1]);
+                $dataBase->modify('+' . ($i - 1) . ' months');
+                $dataVencimento = $dataBase->format('Y-m-d');
+            }
+            
+            // Determina o valor da parcela (personalizado ou padrão)
+            if (isset($valoresParcelas[$i]) && is_numeric($valoresParcelas[$i]) && $valoresParcelas[$i] > 0) {
+                $valorParcela = $valoresParcelas[$i];
+                \Log::info("Parcela {$i}: usando valor personalizado R$ " . $valorParcela);
+            } else {
+                $valorParcela = $valorParcelaPadrao;
+                \Log::info("Parcela {$i}: usando valor padrão R$ " . $valorParcela);
+            }
+            
             $this->parcelasServico()->create([
                 'numero_parcela' => $i,
-                'total_parcelas' => $this->parcelas,
+                'total_parcelas' => $numParcelas,
                 'valor_parcela' => $valorParcela,
                 'data_vencimento' => $dataVencimento,
                 'status' => 'pendente',
+                'data_pagamento' => null,
             ]);
         }
+        
+        \Log::info("Parcelas criadas com sucesso para serviço {$this->id}");
     }
 
     // Método para marcar como não pago
