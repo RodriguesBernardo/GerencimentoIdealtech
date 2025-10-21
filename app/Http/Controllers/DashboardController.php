@@ -507,6 +507,18 @@ class DashboardController extends Controller
             ->orderBy('data_vencimento')
             ->get()
             ->map(function($parcela) {
+                // Verifica se o serviço e cliente existem
+                if (!$parcela->servico || !$parcela->servico->cliente) {
+                    return [
+                        'cliente' => 'Cliente não encontrado',
+                        'servico' => $parcela->servico ? $parcela->servico->descricao : 'Serviço não encontrado',
+                        'valor' => $parcela->valor_parcela,
+                        'vencimento' => $parcela->data_vencimento,
+                        'dias_atraso' => now()->diffInDays($parcela->data_vencimento),
+                        'erro' => true // Flag para identificar registros problemáticos
+                    ];
+                }
+
                 return [
                     'cliente' => $parcela->servico->cliente->nome,
                     'servico' => $parcela->servico->descricao,
@@ -514,7 +526,8 @@ class DashboardController extends Controller
                     'vencimento' => $parcela->data_vencimento,
                     'dias_atraso' => now()->diffInDays($parcela->data_vencimento)
                 ];
-            });
+            })
+            ->filter(); // Remove possíveis valores nulos
     }
 
     private function getClientesAtivos($dataInicio, $dataFim)

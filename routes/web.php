@@ -35,12 +35,12 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/servicos/{servico}/edit', [ServicoController::class, 'edit'])->name('servicos.edit');
     Route::put('/servicos/{servico}', [ServicoController::class, 'update'])->name('servicos.update'); // CORREÇÃO: Esta deve vir antes das rotas específicas
     Route::delete('/servicos/{servico}', [ServicoController::class, 'destroy'])->name('servicos.destroy');
-    
-    // Rotas específicas de serviços (DEVEM VIR DEPOIS da rota update)
+    // Rotas específicas de serviços
     Route::post('/servicos/{servico}/update-payment-status', [ServicoController::class, 'updatePaymentStatus'])->name('servicos.update-payment-status');
     Route::post('/servicos/{servico}/marcar-pago', [ServicoController::class, 'marcarPago'])->name('servicos.marcar-pago');
+        Route::post('/servicos/{servico}/pagar', [ServicoController::class, 'pagar'])->name('servicos.pagar');
     
-    // Rotas de exportação 
+        // Rotas de exportação 
     Route::get('/servicos/export/excel', [ServicoController::class, 'exportExcel'])->name('servicos.export.excel');
     Route::get('/servicos/export/pdf', [ServicoController::class, 'exportPdf'])->name('servicos.export.pdf');
     

@@ -247,7 +247,9 @@ class ServicoController extends Controller
             $query->where('tipo_pagamento', $request->tipo_pagamento);
         }
 
-        return $query->latest('data_servico')->get();
+           return $query->orderBy('data_servico', 'DESC')
+                ->orderBy('created_at', 'DESC')
+                ->get();
     }
     
 

@@ -5,8 +5,9 @@ namespace App\Exports;
 use App\Models\Servico;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
 
-class ServicosExport implements FromCollection, WithHeadings
+class ServicosExport implements FromCollection, WithHeadings, WithMapping
 {
     protected $request;
 
@@ -17,14 +18,9 @@ class ServicosExport implements FromCollection, WithHeadings
 
     public function collection()
     {
-        $query = Servico::with('cliente');
+        $query = Servico::with(['cliente', 'parcelasServico']);
 
-        // Aplicar filtro de data
-        $dataInicial = $this->request->data_inicial ?? now()->startOfMonth()->format('Y-m-d');
-        $dataFinal = $this->request->data_final ?? now()->endOfMonth()->format('Y-m-d');
-        $query->whereBetween('data_servico', [$dataInicial, $dataFinal]);
-
-        // Filtros básicos
+        // Aplicar filtros
         if ($this->request->search) {
             $query->whereHas('cliente', function($q) {
                 $q->where('nome', 'like', "%{$this->request->search}%");
@@ -39,29 +35,35 @@ class ServicosExport implements FromCollection, WithHeadings
             $query->where('tipo_pagamento', $this->request->tipo_pagamento);
         }
 
-        return $query->latest('data_servico')->get()->map(function($servico) {
-            return [
-                'Cliente' => $servico->cliente->nome,
-                'Serviço' => $servico->descricao,
-                'Valor' => 'R$ ' . number_format($servico->valor, 2, ',', '.'),
-                'Tipo Pagamento' => $servico->tipo_pagamento == 'avista' ? 'À Vista' : 'Parcelado',
-                'Status' => ucfirst($servico->status_pagamento),
-                'Data Serviço' => $servico->data_servico->format('d/m/Y'),
-                'Parcelas' => $servico->tipo_pagamento == 'parcelado' ? $servico->parcelas . 'x' : '1x',
-            ];
-        });
+        // ORDENAÇÃO GARANTIDA
+        return $query->orderBy('data_servico', 'DESC')
+                    ->orderBy('created_at', 'DESC')
+                    ->get();
     }
 
     public function headings(): array
     {
         return [
+            'Data',
             'Cliente',
-            'Serviço', 
-            'Valor',
-            'Tipo Pagamento',
+            'Descrição',
+            'Valor Total',
             'Status',
-            'Data Serviço',
+            'Tipo Pagamento',
             'Parcelas'
+        ];
+    }
+
+    public function map($servico): array
+    {
+        return [
+            $servico->data_servico->format('d/m/Y'),
+            $servico->cliente->nome,
+            $servico->descricao,
+            'R$ ' . number_format($servico->valor, 2, ',', '.'),
+            ucfirst($servico->status_pagamento),
+            $servico->tipo_pagamento == 'avista' ? 'À Vista' : 'Parcelado',
+            $servico->parcelas
         ];
     }
 }
