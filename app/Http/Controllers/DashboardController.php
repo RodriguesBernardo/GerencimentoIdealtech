@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -46,29 +47,80 @@ class DashboardController extends Controller
     }
 
     /**
+     * Método para a rota /admin/relatorios
+     */
+    public function relatorios()
+    {
+        $periodo = request('periodo', 'mes_atual');
+        $dataInicio = $this->getDataInicioPorPeriodo($periodo);
+        $dataFim = now()->format('Y-m-d');
+
+        $dadosRelatorios = $this->getDadosRelatorios($dataInicio, $dataFim);
+
+        // Adicione estas variáveis para a view
+        $periodoLabel = $this->getPeriodoLabel($periodo);
+        $statusColors = [
+            'pago' => '#10B981',
+            'pendente' => '#F59E0B',
+            'nao_pago' => '#EF4444',
+        ];
+
+        return view('admin.relatorios.index', compact(
+            'dadosRelatorios',
+            'periodo',
+            'periodoLabel',
+            'statusColors'
+        ));
+    }
+
+    /**
+     * Exportar relatório
+     */
+    public function exportarRelatorio(Request $request)
+    {
+        $tipo = $request->tipo ?? 'pdf';
+        $periodo = $request->periodo ?? 'mes_atual';
+        $dataInicio = $this->getDataInicioPorPeriodo($periodo);
+        $dataFim = now()->format('Y-m-d');
+
+        $dados = $this->getDadosRelatorios($dataInicio, $dataFim);
+
+        if ($tipo === 'excel') {
+            return $this->exportarExcel($dados, $periodo);
+        }
+
+        return $this->exportarPDF($dados, $periodo);
+    }
+
+    /**
      * Clientes que possuem pendências financeiras
      */
     private function getClientesParaCobrar()
     {
-        return Cliente::whereHas('servicos', function($query) {
-                $query->where('status_pagamento', 'pendente')
-                      ->orWhere('status_pagamento', 'nao_pago');
-            })
-            ->with(['servicos' => function($query) {
-                $query->whereIn('status_pagamento', ['pendente', 'nao_pago'])
-                      ->with('parcelasServico');
+        return Cliente::whereHas('servicos', function ($query) {
+            $query->whereNull('deleted_at')
+                ->where(function ($q) {
+                    $q->where('status_pagamento', 'pendente')
+                        ->orWhere('status_pagamento', 'nao_pago');
+                });
+        })
+            ->with(['servicos' => function ($query) {
+                $query->whereNull('deleted_at')
+                    ->whereIn('status_pagamento', ['pendente', 'nao_pago'])
+                    ->with('parcelasServico');
             }])
             ->orderBy('nome')
             ->take(10)
             ->get()
-            ->map(function($cliente) {
+            ->map(function ($cliente) {
                 $cliente->total_pendente = $cliente->servicos
                     ->whereIn('status_pagamento', ['pendente', 'nao_pago'])
                     ->sum('valor');
-                
+
                 $cliente->parcelas_vencidas = $cliente->servicos
-                    ->flatMap(function($servico) {
-                        return $servico->parcelasServico->where('status', 'pendente')
+                    ->flatMap(function ($servico) {
+                        return $servico->parcelasServico
+                            ->where('status', 'pendente')
                             ->where('data_vencimento', '<', now());
                     })
                     ->count();
@@ -84,10 +136,18 @@ class DashboardController extends Controller
     {
         return Parcela::where('status', 'pendente')
             ->where('data_vencimento', '<', now())
-            ->with(['servico.cliente'])
+            ->whereHas('servico', function ($query) {
+                $query->whereNull('deleted_at');
+            })
+            ->with(['servico' => function ($query) {
+                $query->withTrashed();
+            }, 'servico.cliente'])
             ->orderBy('data_vencimento')
             ->take(15)
-            ->get();
+            ->get()
+            ->filter(function ($parcela) {
+                return $parcela->servico && $parcela->servico->cliente;
+            });
     }
 
     /**
@@ -109,6 +169,7 @@ class DashboardController extends Controller
     private function getServicosPendentes()
     {
         return Servico::whereIn('status_pagamento', ['pendente', 'nao_pago'])
+            ->whereNull('deleted_at')
             ->with('cliente')
             ->orderBy('data_servico')
             ->take(10)
@@ -126,15 +187,11 @@ class DashboardController extends Controller
             ->orderBy('data_inicio')
             ->take(8)
             ->get()
-            ->map(function($evento) {
-                // Adicionar informações formatadas
+            ->map(function ($evento) {
                 $evento->data_formatada = $evento->data_inicio->format('d/m/Y');
                 $evento->hora_formatada = $evento->data_inicio->format('H:i');
-                
-                // Calcular dias restantes arredondados
                 $diasRestantes = now()->startOfDay()->diffInDays($evento->data_inicio->startOfDay(), false);
                 $evento->dias_restantes = $diasRestantes >= 0 ? $diasRestantes : 0;
-                
                 return $evento;
             });
     }
@@ -144,7 +201,7 @@ class DashboardController extends Controller
      */
     private function getTotalClientesComPendencia()
     {
-        return Cliente::whereHas('servicos', function($query) {
+        return Cliente::whereHas('servicos', function ($query) {
             $query->whereIn('status_pagamento', ['pendente', 'nao_pago']);
         })->count();
     }
@@ -156,6 +213,9 @@ class DashboardController extends Controller
     {
         return Parcela::where('status', 'pendente')
             ->where('data_vencimento', '<', now())
+            ->whereHas('servico', function ($query) {
+                $query->whereNull('deleted_at');
+            })
             ->sum('valor_parcela');
     }
 
@@ -166,6 +226,9 @@ class DashboardController extends Controller
     {
         return Parcela::where('status', 'pendente')
             ->whereBetween('data_vencimento', [now(), now()->addDays(7)])
+            ->whereHas('servico', function ($query) {
+                $query->whereNull('deleted_at');
+            })
             ->sum('valor_parcela');
     }
 
@@ -181,7 +244,7 @@ class DashboardController extends Controller
         for ($i = 5; $i >= 0; $i--) {
             $mes = now()->subMonths($i);
             $mesFormatado = $mes->translatedFormat('M/Y');
-            
+
             $total = Servico::whereMonth('created_at', $mes->month)
                 ->whereYear('created_at', $mes->year)
                 ->count();
@@ -196,30 +259,9 @@ class DashboardController extends Controller
         ];
     }
 
-    public function relatorios()
-    {
-        $periodo = request('periodo', 'mes_atual');
-        $dataInicio = $this->getDataInicioPorPeriodo($periodo);
-        $dataFim = now()->format('Y-m-d');
-        
-        $dadosRelatorios = $this->getDadosRelatorios($dataInicio, $dataFim);
-        
-        // Adicione estas variáveis para a view
-        $periodoLabel = $this->getPeriodoLabel($periodo);
-        $statusColors = [
-            'pago' => '#10B981',
-            'pendente' => '#F59E0B', 
-            'nao_pago' => '#EF4444',
-        ];
-        
-        return view('admin.relatorios.index', compact(
-            'dadosRelatorios', 
-            'periodo',
-            'periodoLabel',
-            'statusColors'
-        ));
-    }
-
+    /**
+     * Métodos para relatórios
+     */
     private function getDataInicioPorPeriodo($periodo)
     {
         switch ($periodo) {
@@ -253,14 +295,14 @@ class DashboardController extends Controller
     private function getResumoGeral($dataInicio, $dataFim)
     {
         $servicos = Servico::whereBetween('data_servico', [$dataInicio, $dataFim])->get();
-        
+
         return [
             'valor_total_arrecadado' => $servicos->where('status_pagamento', 'pago')->sum('valor'),
             'valor_total_pendente' => $servicos->where('status_pagamento', 'pendente')->sum('valor'),
             'total_servicos' => $servicos->count(),
             'ticket_medio' => $servicos->avg('valor'),
             'novos_clientes' => Cliente::whereBetween('created_at', [$dataInicio, $dataFim])->count(),
-            'clientes_ativos' => Cliente::whereHas('servicos', function($q) use ($dataInicio, $dataFim) {
+            'clientes_ativos' => Cliente::whereHas('servicos', function ($q) use ($dataInicio, $dataFim) {
                 $q->whereBetween('data_servico', [$dataInicio, $dataFim]);
             })->count(),
             'valor_ano_atual' => $this->getValorAnoAtual(),
@@ -281,14 +323,14 @@ class DashboardController extends Controller
             ->whereYear('data_servico', now()->year)
             ->where('status_pagamento', 'pago')
             ->sum('valor');
-            
+
         $mesAnterior = Servico::whereMonth('data_servico', now()->subMonth()->month)
             ->whereYear('data_servico', now()->subMonth()->year)
             ->where('status_pagamento', 'pago')
             ->sum('valor');
-            
+
         if ($mesAnterior == 0) return 100;
-        
+
         return (($mesAtual - $mesAnterior) / $mesAnterior) * 100;
     }
 
@@ -312,11 +354,11 @@ class DashboardController extends Controller
                 ->whereYear('data_servico', $mes->year)
                 ->where('status_pagamento', 'pago')
                 ->sum('valor');
-                
+
             $dados['labels'][] = $mes->translatedFormat('M/Y');
             $dados['valores'][] = $total;
         }
-        
+
         return $dados;
     }
 
@@ -336,15 +378,15 @@ class DashboardController extends Controller
 
     private function getTopClientes($dataInicio, $dataFim)
     {
-        $clientes = Cliente::withSum(['servicos' => function($q) use ($dataInicio, $dataFim) {
+        $clientes = Cliente::withSum(['servicos' => function ($q) use ($dataInicio, $dataFim) {
             $q->whereBetween('data_servico', [$dataInicio, $dataFim]);
         }], 'valor')
-        ->withCount(['servicos' => function($q) use ($dataInicio, $dataFim) {
-            $q->whereBetween('data_servico', [$dataInicio, $dataFim]);
-        }])
-        ->orderBy('servicos_sum_valor', 'desc')
-        ->limit(10)
-        ->get();
+            ->withCount(['servicos' => function ($q) use ($dataInicio, $dataFim) {
+                $q->whereBetween('data_servico', [$dataInicio, $dataFim]);
+            }])
+            ->orderBy('servicos_sum_valor', 'desc')
+            ->limit(10)
+            ->get();
 
         return [
             'labels' => $clientes->pluck('nome'),
@@ -415,11 +457,11 @@ class DashboardController extends Controller
 
     private function getMelhorCliente($dataInicio, $dataFim)
     {
-        return Cliente::withSum(['servicos' => function($q) use ($dataInicio, $dataFim) {
+        return Cliente::withSum(['servicos' => function ($q) use ($dataInicio, $dataFim) {
             $q->whereBetween('data_servico', [$dataInicio, $dataFim]);
         }], 'valor')
-        ->orderBy('servicos_sum_valor', 'desc')
-        ->first();
+            ->orderBy('servicos_sum_valor', 'desc')
+            ->first();
     }
 
     private function getServicoMaisLucrativo($dataInicio, $dataFim)
@@ -487,7 +529,7 @@ class DashboardController extends Controller
             ->orderBy('data_servico', 'desc')
             ->limit(10)
             ->get()
-            ->map(function($servico) {
+            ->map(function ($servico) {
                 return [
                     'data' => $servico->data_servico,
                     'cliente' => $servico->cliente->nome,
@@ -503,11 +545,15 @@ class DashboardController extends Controller
         return Parcela::whereBetween('data_vencimento', [$dataInicio, $dataFim])
             ->where('status', 'pendente')
             ->where('data_vencimento', '<', now())
-            ->with(['servico.cliente'])
+            ->whereHas('servico', function ($query) {
+                $query->whereNull('deleted_at');
+            })
+            ->with(['servico' => function ($query) {
+                $query->withTrashed();
+            }, 'servico.cliente'])
             ->orderBy('data_vencimento')
             ->get()
-            ->map(function($parcela) {
-                // Verifica se o serviço e cliente existem
+            ->map(function ($parcela) {
                 if (!$parcela->servico || !$parcela->servico->cliente) {
                     return [
                         'cliente' => 'Cliente não encontrado',
@@ -515,7 +561,7 @@ class DashboardController extends Controller
                         'valor' => $parcela->valor_parcela,
                         'vencimento' => $parcela->data_vencimento,
                         'dias_atraso' => now()->diffInDays($parcela->data_vencimento),
-                        'erro' => true // Flag para identificar registros problemáticos
+                        'erro' => true
                     ];
                 }
 
@@ -527,24 +573,26 @@ class DashboardController extends Controller
                     'dias_atraso' => now()->diffInDays($parcela->data_vencimento)
                 ];
             })
-            ->filter(); // Remove possíveis valores nulos
+            ->filter(function ($item) {
+                return !isset($item['erro']) && $item['cliente'] !== 'Cliente não encontrado';
+            });
     }
 
     private function getClientesAtivos($dataInicio, $dataFim)
     {
-        return Cliente::whereHas('servicos', function($q) use ($dataInicio, $dataFim) {
-                $q->whereBetween('data_servico', [$dataInicio, $dataFim]);
-            })
-            ->withCount(['servicos' => function($q) use ($dataInicio, $dataFim) {
+        return Cliente::whereHas('servicos', function ($q) use ($dataInicio, $dataFim) {
+            $q->whereBetween('data_servico', [$dataInicio, $dataFim]);
+        })
+            ->withCount(['servicos' => function ($q) use ($dataInicio, $dataFim) {
                 $q->whereBetween('data_servico', [$dataInicio, $dataFim]);
             }])
-            ->withSum(['servicos' => function($q) use ($dataInicio, $dataFim) {
+            ->withSum(['servicos' => function ($q) use ($dataInicio, $dataFim) {
                 $q->whereBetween('data_servico', [$dataInicio, $dataFim]);
             }], 'valor')
             ->orderBy('servicos_sum_valor', 'desc')
             ->limit(10)
             ->get()
-            ->map(function($cliente) {
+            ->map(function ($cliente) {
                 return [
                     'nome' => $cliente->nome,
                     'total_servicos' => $cliente->servicos_count,
@@ -554,28 +602,11 @@ class DashboardController extends Controller
             });
     }
 
-    public function exportarRelatorio(Request $request)
-    {
-        $tipo = $request->tipo ?? 'pdf';
-        $periodo = $request->periodo ?? 'mes_atual';
-        $dataInicio = $this->getDataInicioPorPeriodo($periodo);
-        $dataFim = now()->format('Y-m-d');
-        
-        $dados = $this->getDadosRelatorios($dataInicio, $dataFim);
-        
-        if ($tipo === 'excel') {
-            return $this->exportarExcel($dados, $periodo);
-        }
-        
-        return $this->exportarPDF($dados, $periodo);
-    }
-
     private function exportarPDF($dados, $periodo)
     {
         // Implementação básica de exportação PDF
-        // Em produção, use uma biblioteca como DomPDF
         $html = view('admin.relatorios.export.pdf', compact('dados', 'periodo'))->render();
-        
+
         return response($html)
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', 'attachment; filename="relatorio_' . $periodo . '.pdf"');
@@ -584,9 +615,8 @@ class DashboardController extends Controller
     private function exportarExcel($dados, $periodo)
     {
         // Implementação básica de exportação Excel
-        // Em produção, use uma biblioteca como PhpSpreadsheet
         $csv = $this->gerarCSV($dados);
-        
+
         return response($csv)
             ->header('Content-Type', 'text/csv')
             ->header('Content-Disposition', 'attachment; filename="relatorio_' . $periodo . '.csv"');
@@ -597,13 +627,13 @@ class DashboardController extends Controller
         $lines = [];
         $lines[] = "Relatório de Serviços - " . now()->format('d/m/Y');
         $lines[] = "";
-        
+
         // Resumo
         $lines[] = "RESUMO GERAL";
         foreach ($dados['resumo'] as $chave => $valor) {
             $lines[] = ucfirst(str_replace('_', ' ', $chave)) . ";" . $valor;
         }
-        
+
         $lines[] = "";
         $lines[] = "INSIGHTS";
         foreach ($dados['insights'] as $chave => $valor) {
@@ -613,12 +643,13 @@ class DashboardController extends Controller
                 $lines[] = ucfirst(str_replace('_', ' ', $chave)) . ";" . $valor;
             }
         }
-        
+
         return implode("\n", $lines);
     }
-public function getPeriodoLabel($periodo)
+
+    public function getPeriodoLabel($periodo)
     {
-        return match($periodo) {
+        return match ($periodo) {
             'semana_atual' => 'Semana Atual',
             'mes_atual' => 'Mês Atual',
             'mes_anterior' => 'Mês Anterior',
@@ -634,7 +665,7 @@ public function getPeriodoLabel($periodo)
      */
     public function getStatusColor($status)
     {
-        return match(strtolower($status)) {
+        return match (strtolower($status)) {
             'pago' => '#10B981',
             'pendente' => '#F59E0B',
             'nao pago' => '#EF4444',
@@ -648,33 +679,11 @@ public function getPeriodoLabel($periodo)
      */
     public function getStatusBadgeColor($status)
     {
-        return match($status) {
+        return match ($status) {
             'pago' => 'success',
             'pendente' => 'warning',
             'nao_pago' => 'danger',
             default => 'secondary'
         };
-    }
-
-    /**
-     * Método auxiliar para preparar dados da view
-     */
-    private function prepareViewData($periodo)
-    {
-        $dataInicio = $this->getDataInicioPorPeriodo($periodo);
-        $dataFim = now()->format('Y-m-d');
-        
-        $dadosRelatorios = $this->getDadosRelatorios($dataInicio, $dataFim);
-        
-        return [
-            'dadosRelatorios' => $dadosRelatorios,
-            'periodo' => $periodo,
-            'periodoLabel' => $this->getPeriodoLabel($periodo),
-            'statusColors' => [
-                'pago' => $this->getStatusColor('pago'),
-                'pendente' => $this->getStatusColor('pendente'),
-                'nao_pago' => $this->getStatusColor('nao_pago'),
-            ]
-        ];
     }
 }

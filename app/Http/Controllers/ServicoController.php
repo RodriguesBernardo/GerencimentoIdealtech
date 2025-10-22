@@ -1,14 +1,15 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use App\Models\Servico;
 use App\Models\Cliente;
 use Illuminate\Http\Request;
 use App\Exports\ServicosExport;
-use Maatwebsite\Excel\Facades\Excel; 
-use Barryvdh\DomPDF\Facade\Pdf; 
+use Maatwebsite\Excel\Facades\Excel;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\AnexoServico;
-use Illuminate\Support\Facades\Storage; 
+use Illuminate\Support\Facades\Storage;
 
 class ServicoController extends Controller
 {
@@ -22,12 +23,12 @@ class ServicoController extends Controller
 
         // **QUERY PARA FILTRAGEM NA LISTA** (com todos os filtros)
         $queryFiltrada = clone $query;
-        
+
         // Aplicar filtros apenas na query da listagem
         $queryFiltrada->whereBetween('data_servico', [$dataInicial, $dataFinal]);
 
         if ($request->search) {
-            $queryFiltrada->whereHas('cliente', function($q) use ($request) {
+            $queryFiltrada->whereHas('cliente', function ($q) use ($request) {
                 $q->where('nome', 'like', "%{$request->search}%");
             });
         }
@@ -42,13 +43,13 @@ class ServicoController extends Controller
 
         // Paginação apenas na query filtrada
         $servicos = $queryFiltrada->orderBy('data_servico', 'DESC')
-                                ->orderBy('created_at', 'DESC')
-                                ->paginate(15);
+            ->orderBy('created_at', 'DESC')
+            ->paginate(15);
 
         // **INSIGHTS: usar query separada com apenas o filtro de período**
         $queryInsights = Servico::with(['cliente', 'parcelasServico'])
-                            ->whereBetween('data_servico', [$dataInicial, $dataFinal]);
-        
+            ->whereBetween('data_servico', [$dataInicial, $dataFinal]);
+
         $insights = auth()->user()->is_admin ? $this->calcularInsightsComParcelas($queryInsights) : [];
 
         return view('servicos.index', compact('servicos', 'insights', 'dataInicial', 'dataFinal'));
@@ -58,16 +59,16 @@ class ServicoController extends Controller
     {
         // Garantir que pegamos todos os registros (sem paginação)
         $servicosComParcelas = $query->with('parcelasServico')->get();
-        
+
         // Cálculos considerando as parcelas
         $totalPago = 0;
         $totalPendente = 0;
         $totalDevedor = 0;
         $valorTotal = 0;
-        
+
         foreach ($servicosComParcelas as $servico) {
             $valorTotal += $servico->valor ?? 0;
-            
+
             if ($servico->tipo_pagamento == 'avista') {
                 // Serviço à vista
                 if ($servico->status_pagamento == 'pago') {
@@ -83,7 +84,7 @@ class ServicoController extends Controller
                 $parcelasPagas = $servico->parcelasServico->where('status', 'paga');
                 $parcelasPendentes = $servico->parcelasServico->where('status', 'pendente');
                 $parcelasNaoPagas = $servico->parcelasServico->where('status', 'nao_paga');
-                
+
                 $totalPago += $parcelasPagas->sum('valor_parcela');
                 $totalPendente += $parcelasPendentes->sum('valor_parcela');
                 $totalDevedor += $parcelasPendentes->sum('valor_parcela') + $parcelasNaoPagas->sum('valor_parcela');
@@ -102,50 +103,6 @@ class ServicoController extends Controller
         ];
     }
 
-    private function calcularInsights($query)
-    {
-        return [
-            'total_clientes' => Cliente::count(),
-            'total_servicos' => $query->count(),
-            'valor_total' => $query->sum('valor') ?? 0,
-            'valor_mes_atual' => $query->whereMonth('data_servico', now()->month)
-                                     ->whereYear('data_servico', now()->year)
-                                     ->sum('valor') ?? 0,
-            'valor_ano_atual' => $query->whereYear('data_servico', now()->year)
-                                      ->sum('valor') ?? 0,
-            'total_devedor' => $query->whereIn('status_pagamento', ['pendente', 'nao_pago'])
-                                    ->sum('valor') ?? 0,
-            'total_pago' => $query->where('status_pagamento', 'pago')->sum('valor') ?? 0,
-        ];
-    }
-
-    private function calcularValorMesAtual($query)
-    {
-        $mesAtual = now()->month;
-        $anoAtual = now()->year;
-        
-        $queryMes = clone $query;
-        return $queryMes->whereMonth('data_servico', $mesAtual)
-                       ->whereYear('data_servico', $anoAtual)
-                       ->sum('valor');
-    }
-
-    private function calcularValorAnoAtual($query)
-    {
-        $anoAtual = now()->year;
-        
-        $queryAno = clone $query;
-        return $queryAno->whereYear('data_servico', $anoAtual)
-                       ->sum('valor');
-    }
-
-    private function calcularTotalDevedor($query)
-    {
-        $queryDevedor = clone $query;
-        return $queryDevedor->whereIn('status_pagamento', ['pendente', 'nao_pago'])
-                           ->sum('valor');
-    }
-
     public function exportPdf(Request $request)
     {
         if (!auth()->user()->is_admin) {
@@ -159,17 +116,17 @@ class ServicoController extends Controller
         // Query para os serviços
         $query = Servico::with(['cliente', 'parcelasServico'])
             ->whereBetween('data_servico', [$dataInicial, $dataFinal]);
-        
+
         if ($request->search) {
-            $query->whereHas('cliente', function($q) use ($request) {
+            $query->whereHas('cliente', function ($q) use ($request) {
                 $q->where('nome', 'like', "%{$request->search}%");
             });
         }
-        
+
         if ($request->status) {
             $query->where('status_pagamento', $request->status);
         }
-        
+
         if ($request->tipo_pagamento) {
             $query->where('tipo_pagamento', $request->tipo_pagamento);
         }
@@ -180,7 +137,7 @@ class ServicoController extends Controller
         $totalPago = 0;
         $totalPendente = 0;
         $totalDevedor = 0;
-        
+
         foreach ($servicos as $servico) {
             if ($servico->tipo_pagamento == 'avista') {
                 // Serviço à vista
@@ -196,7 +153,7 @@ class ServicoController extends Controller
                 // Serviço parcelado - calcular baseado nas parcelas
                 $parcelasPagas = $servico->parcelasServico->where('status', 'paga');
                 $parcelasPendentes = $servico->parcelasServico->where('status', 'pendente');
-                
+
                 $totalPago += $parcelasPagas->sum('valor_parcela');
                 $totalPendente += $parcelasPendentes->sum('valor_parcela');
                 $totalDevedor += $parcelasPendentes->sum('valor_parcela');
@@ -225,42 +182,10 @@ class ServicoController extends Controller
 
         return Excel::download(new ServicosExport($request), 'servicos-' . now()->format('d-m-Y') . '.xlsx');
     }
-    /**
-     * Obter serviços filtrados para exportação
-     */
-    private function getServicosFiltrados(Request $request)
-    {
-        $query = Servico::with(['cliente', 'parcelasServico']);
-
-        // Aplicar os mesmos filtros da index
-        if ($request->search) {
-            $query->whereHas('cliente', function($q) use ($request) {
-                $q->where('nome', 'like', "%{$request->search}%");
-            });
-        }
-
-        if ($request->status) {
-            $query->where('status_pagamento', $request->status);
-        }
-
-        if ($request->tipo_pagamento) {
-            $query->where('tipo_pagamento', $request->tipo_pagamento);
-        }
-
-           return $query->orderBy('data_servico', 'DESC')
-                ->orderBy('created_at', 'DESC')
-                ->get();
-    }
-    
 
     public function create()
     {
-        // Remova ou comente esta linha que carrega todos os clientes
-        // $clientes = Cliente::orderBy('nome')->get();
-        
-        return view('servicos.create', [
-            // 'clientes' => $clientes, // Não precisamos mais disso
-        ]);
+        return view('servicos.create');
     }
 
     public function store(Request $request)
@@ -277,11 +202,11 @@ class ServicoController extends Controller
             'data_primeiro_vencimento' => 'nullable|date',
             'datas_parcelas' => 'nullable|array',
             'datas_parcelas.*' => 'nullable|date',
-            'valores_parcelas' => 'nullable|array', // ADICIONADO
-            'valores_parcelas.*' => 'nullable|numeric|min:0.01', // ADICIONADO
+            'valores_parcelas' => 'nullable|array',
+            'valores_parcelas.*' => 'nullable|numeric|min:0.01',
             'observacoes' => 'nullable|string',
             'pago_at' => 'nullable|date',
-            'anexos' => 'nullable|array|max:5', 
+            'anexos' => 'nullable|array|max:5',
             'anexos.*' => 'file|max:10240',
             'descricoes_anexos' => 'nullable|array',
             'descricoes_anexos.*' => 'nullable|string|max:255',
@@ -314,19 +239,19 @@ class ServicoController extends Controller
         // CAPTURA OS CAMPOS EXTRAS
         $dataPrimeiroVencimento = $validated['data_primeiro_vencimento'] ?? null;
         $datasParcelas = $validated['datas_parcelas'] ?? [];
-        $valoresParcelas = $validated['valores_parcelas'] ?? []; // NOVO
+        $valoresParcelas = $validated['valores_parcelas'] ?? [];
         $anexos = $request->file('anexos') ?? [];
         $descricoesAnexos = $validated['descricoes_anexos'] ?? [];
         $servicoRecorrente = $validated['servico_recorrente'] ?? false;
         $frequencia = $validated['frequencia'] ?? null;
         $quantidadeRepeticoes = $validated['quantidade_repeticoes'] ?? null;
         $dataFinal = $validated['data_final'] ?? null;
-        
+
         unset(
-            $validated['data_primeiro_vencimento'], 
-            $validated['datas_parcelas'], 
-            $validated['valores_parcelas'], // NOVO
-            $validated['anexos'], 
+            $validated['data_primeiro_vencimento'],
+            $validated['datas_parcelas'],
+            $validated['valores_parcelas'],
+            $validated['anexos'],
             $validated['descricoes_anexos'],
             $validated['servico_recorrente'],
             $validated['frequencia'],
@@ -341,19 +266,19 @@ class ServicoController extends Controller
         if ($servico->tipo_pagamento === 'parcelado' && $servico->parcelas > 1) {
             $servico->criarParcelas(
                 [1 => $dataPrimeiroVencimento] + $datasParcelas,
-                $valoresParcelas // NOVO PARÂMETRO
+                $valoresParcelas
             );
         }
 
         // Cria serviços recorrentes se necessário
         if ($servicoRecorrente && $frequencia) {
             $totalServicos = $this->criarServicosRecorrentes(
-                $servico, 
-                $frequencia, 
-                $quantidadeRepeticoes, 
+                $servico,
+                $frequencia,
+                $quantidadeRepeticoes,
                 $dataFinal
             );
-            
+
             $mensagemSucesso = 'Serviço cadastrado com sucesso!';
             if ($totalServicos > 0) {
                 $mensagemSucesso .= " + {$totalServicos} serviços recorrentes criados.";
@@ -381,7 +306,7 @@ class ServicoController extends Controller
         ];
 
         $meses = $mesesPorFrequencia[$frequencia] ?? 1;
-        
+
         // Calcula o número total de serviços a criar (incluindo o original)
         $totalServicos = $this->calcularTotalServicos(
             $servicoOriginal->data_servico,
@@ -397,7 +322,7 @@ class ServicoController extends Controller
             try {
                 // Calcula a data para este serviço recorrente
                 $dataServico = (clone $servicoOriginal->data_servico)->addMonths($meses * $i);
-                
+
                 // Se tem data final e a data calculada ultrapassa, para
                 if ($dataFinal && $dataServico->gt(new \Carbon\Carbon($dataFinal))) {
                     break;
@@ -405,15 +330,15 @@ class ServicoController extends Controller
 
                 // Cria o novo serviço recorrente
                 $dadosServico = $servicoOriginal->toArray();
-                
+
                 // Remove campos que não devem ser replicados
                 unset($dadosServico['id'], $dadosServico['created_at'], $dadosServico['updated_at']);
-                
+
                 // Atualiza a data do serviço
                 $dadosServico['data_servico'] = $dataServico;
                 $dadosServico['created_at'] = now();
                 $dadosServico['updated_at'] = now();
-                
+
                 // Cria o serviço
                 $novoServico = Servico::create($dadosServico);
 
@@ -423,7 +348,6 @@ class ServicoController extends Controller
                 }
 
                 $servicosCriados++;
-
             } catch (\Exception $e) {
                 \Log::error("Erro ao criar serviço recorrente {$i}: " . $e->getMessage());
                 continue;
@@ -436,27 +360,27 @@ class ServicoController extends Controller
     private function calcularTotalServicos($dataInicial, $quantidadeRepeticoes, $dataFinal, $mesesPorRepeticao)
     {
         if ($quantidadeRepeticoes) {
-            return $quantidadeRepeticoes + 1; // +1 para incluir o serviço original
+            return $quantidadeRepeticoes + 1;
         }
 
         if ($dataFinal) {
             $dataInicio = \Carbon\Carbon::parse($dataInicial);
             $dataFim = \Carbon\Carbon::parse($dataFinal);
-            
+
             $diferencaMeses = $dataInicio->diffInMonths($dataFim);
-            $totalServicos = floor($diferencaMeses / $mesesPorRepeticao) + 1; // +1 para o original
-            
-            return min($totalServicos, 60); // Limite máximo de 60 serviços
+            $totalServicos = floor($diferencaMeses / $mesesPorRepeticao) + 1;
+
+            return min($totalServicos, 60);
         }
 
-        return 13; // padrão: 1 ano (12 meses + o original)
+        return 13;
     }
 
     private function criarParcelasRecorrentes(Servico $servico, Servico $servicoOriginal, $numeroRepeticao, $mesesPorFrequencia)
     {
         // Busca as parcelas do serviço original para replicar a estrutura
         $parcelasOriginais = $servicoOriginal->parcelasServico;
-        
+
         if ($parcelasOriginais->isEmpty()) {
             return;
         }
@@ -465,7 +389,7 @@ class ServicoController extends Controller
             // Calcula a data de vencimento baseada na repetição atual
             $mesesAdicionais = $mesesPorFrequencia * $numeroRepeticao;
             $dataVencimento = (clone $parcelaOriginal->data_vencimento)->addMonths($mesesAdicionais);
-            
+
             $servico->parcelasServico()->create([
                 'numero_parcela' => $parcelaOriginal->numero_parcela,
                 'total_parcelas' => $parcelaOriginal->total_parcelas,
@@ -476,6 +400,7 @@ class ServicoController extends Controller
             ]);
         }
     }
+
     public function show(Servico $servico)
     {
         // Carrega as parcelas do serviço e o cliente
@@ -484,10 +409,9 @@ class ServicoController extends Controller
         return view('servicos.show', compact('servico'));
     }
 
-
     public function edit(Servico $servico)
     {
-        $servico->load('parcelasServico'); 
+        $servico->load('parcelasServico');
 
         return view('servicos.edit', compact('servico'));
     }
@@ -527,8 +451,8 @@ class ServicoController extends Controller
                 $rules['data_primeiro_vencimento'] = 'required|date';
                 $rules['datas_parcelas'] = 'nullable|array';
                 $rules['datas_parcelas.*'] = 'nullable|date';
-                $rules['valores_parcelas'] = 'nullable|array'; // ADICIONADO
-                $rules['valores_parcelas.*'] = 'nullable|numeric|min:0.01'; // ADICIONADO
+                $rules['valores_parcelas'] = 'nullable|array';
+                $rules['valores_parcelas.*'] = 'nullable|numeric|min:0.01';
             } else {
                 // Para à vista, parcelas é sempre 1
                 $rules['parcelas'] = 'sometimes|integer|min:1|max:1';
@@ -569,15 +493,15 @@ class ServicoController extends Controller
             // Remove campos extras antes de atualizar o serviço
             $dataPrimeiroVencimento = $validated['data_primeiro_vencimento'] ?? null;
             $datasParcelas = $validated['datas_parcelas'] ?? [];
-            $valoresParcelas = $validated['valores_parcelas'] ?? []; // NOVO
+            $valoresParcelas = $validated['valores_parcelas'] ?? [];
             $anexos = $request->file('anexos') ?? [];
             $descricoesAnexos = $validated['descricoes_anexos'] ?? [];
-            
+
             unset(
-                $validated['data_primeiro_vencimento'], 
-                $validated['datas_parcelas'], 
-                $validated['valores_parcelas'], // NOVO
-                $validated['anexos'], 
+                $validated['data_primeiro_vencimento'],
+                $validated['datas_parcelas'],
+                $validated['valores_parcelas'],
+                $validated['anexos'],
                 $validated['descricoes_anexos']
             );
 
@@ -589,14 +513,14 @@ class ServicoController extends Controller
             if ($servico->tipo_pagamento === 'parcelado' && $servico->parcelas > 1) {
                 // Prepara o array de datas começando do índice 1
                 $datasVencimento = [1 => $dataPrimeiroVencimento];
-                
+
                 // Adiciona as demais datas das parcelas
                 foreach ($datasParcelas as $index => $data) {
                     if ($data) {
                         $datasVencimento[$index] = $data;
                     }
                 }
-                
+
                 // Garante que temos todas as datas necessárias
                 for ($i = 2; $i <= $servico->parcelas; $i++) {
                     if (!isset($datasVencimento[$i]) || empty($datasVencimento[$i])) {
@@ -606,10 +530,10 @@ class ServicoController extends Controller
                         $datasVencimento[$i] = $dataBase->format('Y-m-d');
                     }
                 }
-                
+
                 // Remove parcelas existentes e cria novas COM VALORES PERSONALIZADOS
                 $servico->parcelasServico()->delete();
-                $servico->criarParcelas($datasVencimento, $valoresParcelas); // NOVO PARÂMETRO
+                $servico->criarParcelas($datasVencimento, $valoresParcelas);
                 \Log::info('Parcelas recriadas com sucesso');
             } else {
                 // Se não é parcelado, remove todas as parcelas
@@ -627,18 +551,16 @@ class ServicoController extends Controller
 
             return redirect()->route('servicos.show', $servico)
                 ->with('success', 'Serviço atualizado com sucesso!');
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             \Log::error('Erro de validação no update:', $e->errors());
             throw $e;
         } catch (\Exception $e) {
             \Log::error('Erro geral no update do serviço: ' . $e->getMessage());
             \Log::error('Stack trace: ' . $e->getTraceAsString());
-            
+
             return back()->withErrors(['error' => 'Erro ao atualizar serviço: ' . $e->getMessage()])->withInput();
         }
     }
-
 
     private function processarAnexos(Servico $servico, $anexos, $descricoesAnexos)
     {
@@ -692,38 +614,35 @@ class ServicoController extends Controller
 
     public function destroy(Servico $servico)
     {
-        $servico->delete();
+        try {
+            \Log::info("=== EXCLUSÃO PERMANENTE DE SERVIÇO INICIADA ===");
+            \Log::info("Serviço ID: " . $servico->id);
 
-        return redirect()->route('servicos.index')
-            ->with('success', 'Serviço excluído com sucesso!');
-    }
+            // PRIMEIRO: Excluir permanentemente todas as parcelas
+            $parcelasCount = $servico->parcelasServico()->count();
+            \Log::info("Parcelas a serem excluídas permanentemente: " . $parcelasCount);
 
-    public function updatePaymentStatus(Request $request, Servico $servico)
-    {
-        $request->validate([
-            'status_pagamento' => 'required|in:pago,nao_pago,pendente',
-            'observacao_pagamento' => 'nullable|string',
-            'pago_at' => 'nullable|date'
-        ]);
+            // FORCE DELETE nas parcelas (remove do banco)
+            $servico->parcelasServico()->forceDelete();
+            \Log::info("Parcelas excluídas permanentemente do banco");
 
-        $data = [
-            'status_pagamento' => $request->status_pagamento,
-            'observacao_pagamento' => $request->observacao_pagamento
-        ];
+            // DEPOIS: Excluir permanentemente o serviço
+            $servico->forceDelete();
+            \Log::info("Serviço excluído permanentemente do banco");
 
-        // Lógica para a data de pagamento
-        if ($request->status_pagamento === 'pago') {
-            $data['pago_at'] = $request->pago_at ?? now();
-        } else {
-            $data['pago_at'] = null;
+            \Log::info("=== EXCLUSÃO PERMANENTE CONCLUÍDA ===");
+
+            return redirect()->route('servicos.index')
+                ->with('success', 'Serviço e suas parcelas foram excluídos PERMANENTEMENTE do banco de dados!');
+        } catch (\Exception $e) {
+            \Log::error("Erro ao excluir permanentemente serviço ID {$servico->id}: " . $e->getMessage());
+            \Log::error("Stack trace: " . $e->getTraceAsString());
+
+            return redirect()->route('servicos.index')
+                ->with('error', 'Erro ao excluir serviço: ' . $e->getMessage());
         }
-
-        $servico->update($data);
-
-        return back()->with('success', 'Status de pagamento atualizado com sucesso!');
     }
 
-    // Novo método para marcar como pago rapidamente
     public function marcarPago(Servico $servico)
     {
         $servico->marcarComoPago();
@@ -734,15 +653,15 @@ class ServicoController extends Controller
     public function searchAjax(Request $request)
     {
         $search = $request->get('q');
-        
+
         $clientes = Cliente::when($search, function ($query, $search) {
             return $query->where('nome', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('telefone', 'like', "%{$search}%");
+                ->orWhere('email', 'like', "%{$search}%")
+                ->orWhere('telefone', 'like', "%{$search}%");
         })
-        ->orderBy('nome')
-        ->limit(20)
-        ->get(['id', 'nome', 'email', 'telefone']);
+            ->orderBy('nome')
+            ->limit(20)
+            ->get(['id', 'nome', 'email', 'telefone']);
 
         return response()->json($clientes);
     }
@@ -755,13 +674,13 @@ class ServicoController extends Controller
         }
 
         $request->validate([
-            'anexo' => 'required|file|max:10240', // 10MB max
+            'anexo' => 'required|file|max:10240',
             'descricao' => 'nullable|string|max:255'
         ]);
 
         try {
             $anexo = $request->file('anexo');
-            
+
             if ($anexo->isValid()) {
                 $nomeOriginal = $anexo->getClientOriginalName();
                 $caminho = $anexo->store('anexos_servicos', 'public');
@@ -784,5 +703,75 @@ class ServicoController extends Controller
         return back()->with('error', 'Erro ao processar o arquivo.');
     }
 
-    
+    public function forceDestroy($id)
+    {
+        try {
+            $servico = Servico::withTrashed()->findOrFail($id);
+
+            \Log::info("=== EXCLUSÃO PERMANENTE DE SERVIÇO INICIADA ===");
+            \Log::info("Serviço ID: " . $servico->id);
+
+            // PRIMEIRO: Excluir permanentemente todas as parcelas
+            $parcelasCount = $servico->parcelasServico()->withTrashed()->count();
+            \Log::info("Parcelas a serem excluídas permanentemente: " . $parcelasCount);
+
+            // FORCE DELETE nas parcelas
+            $servico->parcelasServico()->withTrashed()->forceDelete();
+            \Log::info("Parcelas excluídas permanentemente");
+
+            // DEPOIS: Excluir permanentemente o serviço
+            $servico->forceDelete();
+            \Log::info("Serviço excluído permanentemente");
+
+            \Log::info("=== EXCLUSÃO PERMANENTE CONCLUÍDA ===");
+
+            return redirect()->route('servicos.index')
+                ->with('success', 'Serviço e suas parcelas foram excluídos permanentemente!');
+        } catch (\Exception $e) {
+            \Log::error("Erro ao excluir permanentemente serviço ID {$id}: " . $e->getMessage());
+
+            return redirect()->route('servicos.index')
+                ->with('error', 'Erro ao excluir serviço: ' . $e->getMessage());
+        }
+    }
+
+    public function forceDeleteAll($id)
+    {
+        try {
+            $servico = Servico::withTrashed()->findOrFail($id);
+
+            \Log::info("=== EXCLUSÃO PERMANENTE MANUAL ===");
+            \Log::info("Serviço ID: " . $servico->id);
+
+            // Excluir permanentemente as parcelas
+            $parcelasCount = $servico->parcelasServico()->withTrashed()->count();
+            \Log::info("Parcelas encontradas: " . $parcelasCount);
+
+            $servico->parcelasServico()->withTrashed()->forceDelete();
+            \Log::info("Parcelas excluídas permanentemente");
+
+            // Excluir permanentemente o serviço
+            $servico->forceDelete();
+            \Log::info("Serviço excluído permanentemente");
+
+            return redirect()->route('servicos.index')
+                ->with('success', 'Serviço e parcelas removidos permanentemente da database!');
+        } catch (\Exception $e) {
+            \Log::error("Erro na exclusão permanente: " . $e->getMessage());
+            return redirect()->route('servicos.index')
+                ->with('error', 'Erro: ' . $e->getMessage());
+        }
+    }
+
+    public function lixeira()
+    {
+        $servicosExcluidos = Servico::onlyTrashed()
+            ->with(['cliente', 'parcelasServico' => function ($query) {
+                $query->withTrashed();
+            }])
+            ->orderBy('deleted_at', 'DESC')
+            ->paginate(15);
+
+        return view('servicos.lixeira', compact('servicosExcluidos'));
+    }
 }
