@@ -131,79 +131,6 @@
                 </div>
             </div>
 
-            <!-- Serviço Recorrente -->
-            <div class="card mb-4">
-                <div class="card-header bg-info bg-opacity-10">
-                    <h6 class="card-title mb-0">
-                        <i class="fas fa-sync-alt me-2 text-info"></i>Serviço Recorrente
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="servico_recorrente" name="servico_recorrente" value="1" {{ old('servico_recorrente') ? 'checked' : '' }}>
-                                    <label class="form-check-label" for="servico_recorrente">
-                                        <strong>Este é um serviço recorrente</strong>
-                                    </label>
-                                </div>
-                                <div class="form-text">Marque esta opção se o serviço se repete periodicamente</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="config_recorrencia" style="display: {{ old('servico_recorrente') ? 'block' : 'none' }};">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label for="frequencia" class="form-label">Frequência *</label>
-                                    <select class="form-control" id="frequencia" name="frequencia">
-                                        <option value="mensal" {{ old('frequencia') == 'mensal' ? 'selected' : '' }}>Mensal</option>
-                                        <option value="bimestral" {{ old('frequencia') == 'bimestral' ? 'selected' : '' }}>Bimestral</option>
-                                        <option value="trimestral" {{ old('frequencia') == 'trimestral' ? 'selected' : '' }}>Trimestral</option>
-                                        <option value="semestral" {{ old('frequencia') == 'semestral' ? 'selected' : '' }}>Semestral</option>
-                                        <option value="anual" {{ old('frequencia') == 'anual' ? 'selected' : '' }}>Anual</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label for="quantidade_repeticoes" class="form-label">Quantidade de Repetições</label>
-                                    <input type="number" class="form-control" id="quantidade_repeticoes" name="quantidade_repeticoes"
-                                        value="{{ old('quantidade_repeticoes', 12) }}" min="1" max="60">
-                                    <div class="form-text">Número total de vezes que o serviço será repetido</div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label for="data_final" class="form-label">Data Final</label>
-                                    <input type="date" class="form-control" id="data_final" name="data_final"
-                                        value="{{ old('data_final') }}">
-                                    <div class="form-text">Ou defina uma data final para as repetições</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Resumo da Recorrência -->
-                        <div class="row mt-3">
-                            <div class="col-12">
-                                <div class="card border-0">
-                                    <div class="card-body">
-                                        <h6 class="card-title mb-2">
-                                            <i class="fas fa-calendar-check me-2 text-success"></i>Resumo da Recorrência
-                                        </h6>
-                                        <div id="recorrencia_info" class="small">
-                                            Configure a frequência e quantidade para ver o resumo das repetições.
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Campos de Parcelamento -->
             <div class="card mb-4" id="parcelamento_card" style="display: none;">
                 <div class="card-header bg-warning bg-opacity-10">
@@ -329,6 +256,79 @@
                         @error('observacoes')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
+                    </div>
+                </div>
+            </div>
+
+            <!-- Serviço Recorrente -->
+            <div class="card mb-4">
+                <div class="card-header bg-info bg-opacity-10">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-sync-alt me-2 text-info"></i>Serviço Recorrente
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="servico_recorrente" name="servico_recorrente" value="1" {{ old('servico_recorrente') ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="servico_recorrente">
+                                        <strong>Este é um serviço recorrente</strong>
+                                    </label>
+                                </div>
+                                <div class="form-text">Marque esta opção se o serviço se repete periodicamente</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="config_recorrencia" style="display: {{ old('servico_recorrente') ? 'block' : 'none' }};">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="frequencia" class="form-label">Frequência *</label>
+                                    <select class="form-control" id="frequencia" name="frequencia">
+                                        <option value="mensal" {{ old('frequencia') == 'mensal' ? 'selected' : '' }}>Mensal</option>
+                                        <option value="bimestral" {{ old('frequencia') == 'bimestral' ? 'selected' : '' }}>Bimestral</option>
+                                        <option value="trimestral" {{ old('frequencia') == 'trimestral' ? 'selected' : '' }}>Trimestral</option>
+                                        <option value="semestral" {{ old('frequencia') == 'semestral' ? 'selected' : '' }}>Semestral</option>
+                                        <option value="anual" {{ old('frequencia') == 'anual' ? 'selected' : '' }}>Anual</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="quantidade_repeticoes" class="form-label">Quantidade de Repetições</label>
+                                    <input type="number" class="form-control" id="quantidade_repeticoes" name="quantidade_repeticoes"
+                                        value="{{ old('quantidade_repeticoes', 12) }}" min="1" max="60">
+                                    <div class="form-text">Número total de vezes que o serviço será repetido</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="data_final" class="form-label">Data Final</label>
+                                    <input type="date" class="form-control" id="data_final" name="data_final"
+                                        value="{{ old('data_final') }}">
+                                    <div class="form-text">Ou defina uma data final para as repetições</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Resumo da Recorrência -->
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <div class="card border-0">
+                                    <div class="card-body">
+                                        <h6 class="card-title mb-2">
+                                            <i class="fas fa-calendar-check me-2 text-success"></i>Resumo da Recorrência
+                                        </h6>
+                                        <div id="recorrencia_info" class="small">
+                                            Configure a frequência e quantidade para ver o resumo das repetições.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -236,7 +236,6 @@ class ServicoController extends Controller
             $validated['pago_at'] = null;
         }
 
-        // CAPTURA OS CAMPOS EXTRAS
         $dataPrimeiroVencimento = $validated['data_primeiro_vencimento'] ?? null;
         $datasParcelas = $validated['datas_parcelas'] ?? [];
         $valoresParcelas = $validated['valores_parcelas'] ?? [];
@@ -633,7 +632,7 @@ class ServicoController extends Controller
             \Log::info("=== EXCLUSÃO PERMANENTE CONCLUÍDA ===");
 
             return redirect()->route('servicos.index')
-                ->with('success', 'Serviço e suas parcelas foram excluídos PERMANENTEMENTE do banco de dados!');
+                ->with('success', 'Serviço excluido');
         } catch (\Exception $e) {
             \Log::error("Erro ao excluir permanentemente serviço ID {$servico->id}: " . $e->getMessage());
             \Log::error("Stack trace: " . $e->getTraceAsString());
@@ -726,7 +725,7 @@ class ServicoController extends Controller
             \Log::info("=== EXCLUSÃO PERMANENTE CONCLUÍDA ===");
 
             return redirect()->route('servicos.index')
-                ->with('success', 'Serviço e suas parcelas foram excluídos permanentemente!');
+                ->with('success', 'Serviço excluído');
         } catch (\Exception $e) {
             \Log::error("Erro ao excluir permanentemente serviço ID {$id}: " . $e->getMessage());
 
@@ -774,4 +773,55 @@ class ServicoController extends Controller
 
         return view('servicos.lixeira', compact('servicosExcluidos'));
     }
+
+    public function updatePaymentStatus(Request $request, Servico $servico)
+    {
+        $request->validate([
+            'status_pagamento' => 'required|in:pago,pendente,nao_pago',
+            'observacao_pagamento' => 'nullable|string|max:500'
+        ]);
+
+        try {
+            \Log::info('=== ATUALIZANDO STATUS DE PAGAMENTO ===');
+            \Log::info('Serviço ID: ' . $servico->id);
+            \Log::info('Novo status: ' . $request->status_pagamento);
+            \Log::info('Observação: ' . $request->observacao_pagamento);
+
+            // Atualiza o status do pagamento
+            $servico->update([
+                'status_pagamento' => $request->status_pagamento,
+                'observacao_pagamento' => $request->observacao_pagamento,
+                'pago_at' => $request->status_pagamento === 'pago' ? now() : null
+            ]);
+
+            // Se for marcado como pago e for parcelado, marca todas as parcelas como pagas
+            if ($request->status_pagamento === 'pago' && $servico->tipo_pagamento === 'parcelado') {
+                $servico->parcelasServico()->update([
+                    'status' => 'paga',
+                    'data_pagamento' => now()
+                ]);
+                \Log::info('Todas as parcelas marcadas como pagas');
+            }
+
+            // Se for mudado para pendente/nao_pago e for parcelado, reseta as parcelas
+            if (in_array($request->status_pagamento, ['pendente', 'nao_pago']) && $servico->tipo_pagamento === 'parcelado') {
+                $servico->parcelasServico()->update([
+                    'status' => 'pendente',
+                    'data_pagamento' => null
+                ]);
+                \Log::info('Status das parcelas resetado para pendente');
+            }
+
+            \Log::info('=== STATUS ATUALIZADO COM SUCESSO ===');
+
+            return back()->with('success', 'Status de pagamento atualizado com sucesso!');
+
+        } catch (\Exception $e) {
+            \Log::error('Erro ao atualizar status de pagamento: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+
+            return back()->with('error', 'Erro ao atualizar status: ' . $e->getMessage());
+        }
+    }
+
 }

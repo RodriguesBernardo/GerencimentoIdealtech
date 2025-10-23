@@ -91,7 +91,6 @@
                             <option value="">Selecione o status</option>
                             <option value="pendente" {{ old('status_pagamento', $servico->status_pagamento) == 'pendente' ? 'selected' : '' }}>Pendente</option>
                             <option value="pago" {{ old('status_pagamento', $servico->status_pagamento) == 'pago' ? 'selected' : '' }}>Pago</option>
-                            <option value="nao_pago" {{ old('status_pagamento', $servico->status_pagamento) == 'nao_pago' ? 'selected' : '' }}>Não Pago</option>
                         </select>
                         @error('status_pagamento')
                         <div class="text-danger small mt-1">{{ $message }}</div>
@@ -350,16 +349,19 @@
             return \Carbon\Carbon::parse($date)->format('Y-m-d');
         })->toArray());
 
-        // Controle do tipo de pagamento
+        // Controle do tipo da parcela
         $('#tipo_pagamento').change(function() {
             if ($(this).val() === 'parcelado') {
                 $('#parcelamento_card').show();
                 $('#parcelas').prop('required', true);
+                $('#parcelas').prop('min', '2'); // Garante min 2 para parcelado
                 $('#data_primeiro_vencimento').prop('required', true);
                 calcularParcelas();
             } else {
                 $('#parcelamento_card').hide();
                 $('#parcelas').prop('required', false);
+                $('#parcelas').prop('min', '1'); // Muda para min 1 para à vista
+                $('#parcelas').val('1'); // Força valor 1 para à vista
                 $('#data_primeiro_vencimento').prop('required', false);
                 $('#parcela_info').html('<div class="text-muted">Informe o valor total, número de parcelas e primeira data de vencimento para ver o resumo.</div>');
                 $('#config_parcelas_avancada').hide();
