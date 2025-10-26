@@ -9,11 +9,9 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">Agenda de Atendimentos</h5>
-                    @if(Auth::user()->is_admin || Auth::user()->hasPermission('create_calendar_events'))
                     <button class="btn btn-pipa-red" data-bs-toggle="modal" data-bs-target="#atendimentoModal">
                         <i class="fas fa-plus me-2"></i> Novo Atendimento
                     </button>
-                    @endif
                 </div>
                 <div class="card-body">
                     <div class="row mb-3">
@@ -44,7 +42,6 @@
 </div>
 
 <!-- Modal para criar/editar atendimento -->
-@if(Auth::user()->is_admin || Auth::user()->hasPermission('create_calendar_events'))
 <div class="modal fade" id="atendimentoModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -161,7 +158,6 @@
         </div>
     </div>
 </div>
-@endif
 
 <!-- Modal para visualizar atendimento -->
 <div class="modal fade" id="viewAtendimentoModal" tabindex="-1" aria-hidden="true">
@@ -221,11 +217,9 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                @if(Auth::user()->is_admin || Auth::user()->hasPermission('edit_calendar_events'))
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button> 
                 <button type="button" class="btn btn-pipa-red" id="editAtendimentoBtn">Editar</button>
-                @endif
-                @if(Auth::user()->is_admin || Auth::user()->hasPermission('delete_calendar_events'))
+                @if(Auth::user()->is_admin)
                 <button type="button" class="btn btn-danger" id="deleteAtendimentoBtn">Excluir</button>
                 @endif
             </div>
@@ -298,7 +292,7 @@ function initializeCalendar() {
             right: 'dayGridMonth,timeGridWeek,timeGridDay,listMonth'
         },
         events: {
-            url: '/api/atendimentos-events', // CORRIGIDO - com barra no início
+            url: '/api/atendimentos-events', 
             extraParams: function() {
                 return {
                     status: $('#filterStatus').val(),
@@ -314,9 +308,7 @@ function initializeCalendar() {
             viewAtendimento(info.event);
         },
         dateClick: function(info) {
-            @if(Auth::user()->is_admin || Auth::user()->hasPermission('create_calendar_events'))
             createAtendimento(info.dateStr);
-            @endif
         },
         eventDidMount: function(info) {
             // Aplicar estilo baseado no status
