@@ -77,8 +77,8 @@
                 <div class="col-md-4">
                     <div class="mb-3">
                         <label for="valor" class="form-label">Valor Total (R$) *</label>
-                        <input type="number" class="form-control" id="valor" name="valor"
-                            value="{{ old('valor', $servico->valor) }}" step="0.01" min="0.01" placeholder="0,00" required>
+                        <input type="text" class="form-control" id="valor" name="valor"
+                            value="{{ old('valor', $servico->valor ? number_format($servico->valor, 2, ',', '.') : '') }}" placeholder="0,00" required>
                         @error('valor')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
@@ -281,6 +281,66 @@
 @push('scripts')
 <script>
     $(document).ready(function() {
+
+        // Formatação monetária
+        function formatarMoeda(valor) {
+            // Remove tudo que não é número
+            valor = valor.replace(/\D/g, '');
+            
+            // Converte para número e divide por 100 para ter decimais
+            let numero = parseInt(valor) / 100;
+            
+            // Formata como moeda brasileira
+            return numero.toLocaleString('pt-BR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        function converterParaNumero(valorFormatado) {
+            // Remove pontos (separadores de milhar) e substitui vírgula por ponto
+            return parseFloat(valorFormatado.replace(/\./g, '').replace(',', '.'));
+        }
+
+        // Aplica a formatação monetária no campo valor
+        $('#valor').on('input', function(e) {
+            let valor = $(this).val();
+            
+            // Remove qualquer formatação existente para evitar conflitos
+            let valorLimpo = valor.replace(/\D/g, '');
+            
+            // Se estiver vazio, define como 0,00
+            if (valorLimpo === '') {
+                $(this).val('0,00');
+                return;
+            }
+            
+            // Formata o valor
+            let valorFormatado = formatarMoeda(valorLimpo);
+            $(this).val(valorFormatado);
+        });
+
+        // Formata o valor inicial se existir
+        if ($('#valor').val()) {
+            let valorInicial = $('#valor').val().replace(/\D/g, '');
+            if (valorInicial) {
+                $('#valor').val(formatarMoeda(valorInicial));
+            }
+        }
+
+        // Foca no final do texto quando o campo recebe foco
+        $('#valor').on('focus', function() {
+            let valor = $(this).val();
+            $(this).val('').val(valor);
+        });
+
+        // Função auxiliar para obter valor numérico (para cálculos internos)
+        function obterValorNumerico() {
+            let valorFormatado = $('#valor').val();
+            if (!valorFormatado) return 0;
+            return converterParaNumero(valorFormatado);
+        }
+
         // Inicializa o Select2
         $('.select2-cliente').select2({
             theme: 'bootstrap-5',

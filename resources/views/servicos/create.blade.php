@@ -75,8 +75,9 @@
                 <div class="col-md-4">
                     <div class="mb-3">
                         <label for="valor" class="form-label">Valor Total (R$) *</label>
-                        <input type="number" class="form-control" id="valor" name="valor"
-                            value="{{ old('valor') }}" step="0.01" min="0.01" placeholder="0,00" required>
+                        <input type="text" class="form-control" id="valor" name="valor"
+                            value="{{ old('valor') }}" placeholder="0,00" required>
+                        <input type="hidden" id="valor_numerico" name="valor_numerico">
                         @error('valor')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
@@ -88,7 +89,6 @@
                         <select class="form-control" id="status_pagamento" name="status_pagamento" required>
                             <option value="pendente" {{ old('status_pagamento') == 'pendente' ? 'selected' : '' }}>Pendente</option>
                             <option value="pago" {{ old('status_pagamento') == 'pago' ? 'selected' : '' }}>Pago</option>
-                            <option value="nao_pago" {{ old('status_pagamento') == 'nao_pago' ? 'selected' : '' }}>Não Pago</option>
                         </select>
                         @error('status_pagamento')
                         <div class="text-danger small mt-1">{{ $message }}</div>
@@ -388,6 +388,73 @@
 @push('scripts')
 <script>
     $(document).ready(function() {
+
+        function obterValorNumerico() {
+            let valorFormatado = $('#valor').val();
+            if (!valorFormatado) return 0;
+            return converterParaNumero(valorFormatado);
+        }
+
+
+        // Formatação monetária
+        function formatarMoeda(valor) {
+            // Remove tudo que não é número
+            valor = valor.replace(/\D/g, '');
+            
+            // Converte para número e divide por 100 para ter decimais
+            let numero = parseInt(valor) / 100;
+            
+            // Formata como moeda brasileira
+            return numero.toLocaleString('pt-BR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        function converterParaNumero(valorFormatado) {
+            // Remove pontos (separadores de milhar) e substitui vírgula por ponto
+            return parseFloat(valorFormatado.replace(/\./g, '').replace(',', '.'));
+        }
+
+        // Aplica a formatação monetária no campo valor
+        $('#valor').on('input', function(e) {
+            let valor = $(this).val();
+            
+            // Remove qualquer formatação existente para evitar conflitos
+            let valorLimpo = valor.replace(/\D/g, '');
+            
+            // Se estiver vazio, define como 0,00
+            if (valorLimpo === '') {
+                $(this).val('0,00');
+                $('#valor_numerico').val('0.00');
+                return;
+            }
+            
+            // Formata o valor
+            let valorFormatado = formatarMoeda(valorLimpo);
+            $(this).val(valorFormatado);
+            
+            // Atualiza o campo hidden com o valor numérico
+            let valorNumerico = converterParaNumero(valorFormatado);
+            $('#valor_numerico').val(valorNumerico.toFixed(2));
+        });
+
+        // Formata o valor inicial se existir
+        if ($('#valor').val()) {
+            let valorInicial = $('#valor').val().replace(/\D/g, '');
+            if (valorInicial) {
+                $('#valor').val(formatarMoeda(valorInicial));
+                let valorNumerico = converterParaNumero($('#valor').val());
+                $('#valor_numerico').val(valorNumerico.toFixed(2));
+            }
+        }
+
+        // Foca no final do texto quando o campo recebe foco
+        $('#valor').on('focus', function() {
+            let valor = $(this).val();
+            $(this).val('').val(valor);
+        });
+
         // Inicializa o Select2
         $('.select2-cliente').select2({
             theme: 'bootstrap-5',
@@ -667,7 +734,7 @@
         }
 
         function calcularParcelas() {
-            const valorTotal = parseFloat($('#valor').val()) || 0;
+            const valorTotal = obterValorNumerico(); 
             const numParcelas = parseInt($('#parcelas').val()) || 2;
             const dataPrimeiroVencimento = $('#data_primeiro_vencimento').val();
             
@@ -689,7 +756,7 @@
         }
 
         function calcularValoresAutomaticos() {
-            const valorTotal = parseFloat($('#valor').val()) || 0;
+            const valorTotal = obterValorNumerico(); 
             const numParcelas = parseInt($('#parcelas').val()) || 2;
             const valorParcelaPadrao = valorTotal / numParcelas;
             
@@ -733,7 +800,7 @@
         }
 
         function gerarCamposValoresParcelas() {
-            const valorTotal = parseFloat($('#valor').val()) || 0;
+            const valorTotal = obterValorNumerico(); 
             const numParcelas = parseInt($('#parcelas').val()) || 2;
             const valorParcelaPadrao = valorTotal / numParcelas;
             
@@ -956,7 +1023,7 @@
 
             // Validação específica para parcelas
             if ($('#tipo_pagamento').val() === 'parcelado') {
-                const valorTotal = parseFloat($('#valor').val()) || 0;
+                const valorTotal = obterValorNumerico(); 
                 const numParcelas = parseInt($('#parcelas').val()) || 0;
                 
                 if (numParcelas < 2) {

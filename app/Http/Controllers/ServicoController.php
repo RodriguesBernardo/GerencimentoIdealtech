@@ -196,7 +196,7 @@ class ServicoController extends Controller
             'data_servico' => 'required|date',
             'status_pagamento' => 'required|in:pago,nao_pago,pendente',
             'observacao_pagamento' => 'nullable|string',
-            'valor' => 'nullable|numeric|min:0',
+            'valor' => 'required|string', // Mude para string para aceitar o formato
             'tipo_pagamento' => 'required|in:avista,parcelado',
             'parcelas' => 'required|integer|min:1',
             'data_primeiro_vencimento' => 'nullable|date',
@@ -216,13 +216,18 @@ class ServicoController extends Controller
             'data_final' => 'nullable|date|after:data_servico'
         ]);
 
+        // **CONVERSÃO DO VALOR FORMATADO PARA NÚMERO**
+        if (!empty($validated['valor'])) {
+            $validated['valor'] = $this->converterValorParaNumero($validated['valor']);
+        }
+
+        // Validação adicional para o valor numérico
+        if ($validated['valor'] <= 0) {
+            return back()->withErrors(['valor' => 'O valor deve ser maior que zero.'])->withInput();
+        }
+
         // Remove campos desnecessários
         unset($validated['nome']);
-
-        // Converte valor vazio para null
-        if (empty($validated['valor'])) {
-            $validated['valor'] = null;
-        }
 
         // Se for à vista, parcelas = 1
         if ($validated['tipo_pagamento'] === 'avista') {
@@ -292,6 +297,16 @@ class ServicoController extends Controller
         }
 
         return redirect()->route('servicos.index')->with('success', $mensagemSucesso);
+    }
+
+    // Adicione este método para converter o valor
+    private function converterValorParaNumero($valorFormatado)
+    {
+        // Remove pontos (separadores de milhar) e substitui vírgula por ponto
+        $valorNumerico = str_replace(['.', ','], ['', '.'], $valorFormatado);
+        
+        // Converte para float
+        return (float) $valorNumerico;
     }
 
     private function criarServicosRecorrentes(Servico $servicoOriginal, $frequencia, $quantidadeRepeticoes = null, $dataFinal = null)
@@ -427,14 +442,14 @@ class ServicoController extends Controller
             $maxAnexosPermitidos = 5;
             $maxNovosAnexos = max(0, $maxAnexosPermitidos - $anexosExistentesCount);
 
-            // Regras base de validação
+            // Regras base de validação - ATUALIZADO: valor como string
             $rules = [
                 'cliente_id' => 'required|exists:clientes,id',
                 'descricao' => 'required|string|max:255',
                 'data_servico' => 'required|date',
                 'status_pagamento' => 'required|in:pago,nao_pago,pendente',
                 'observacao_pagamento' => 'nullable|string|max:500',
-                'valor' => 'nullable|numeric|min:0',
+                'valor' => 'required|string', // MUDADO: de numeric para string
                 'tipo_pagamento' => 'required|in:avista,parcelado',
                 'observacoes' => 'nullable|string',
                 'pago_at' => 'nullable|date',
@@ -459,15 +474,20 @@ class ServicoController extends Controller
 
             $validated = $request->validate($rules);
 
+            // **CONVERSÃO DO VALOR FORMATADO PARA NÚMERO** - ADICIONADO
+            if (!empty($validated['valor'])) {
+                $validated['valor'] = $this->converterValorParaNumero($validated['valor']);
+            }
+
+            // Validação adicional para o valor numérico
+            if ($validated['valor'] <= 0) {
+                return back()->withErrors(['valor' => 'O valor deve ser maior que zero.'])->withInput();
+            }
+
             \Log::info('Validação passou, dados validados:', $validated);
 
             // Remove campos desnecessários
             unset($validated['nome']);
-
-            // Converte valor vazio para null
-            if (empty($validated['valor'])) {
-                $validated['valor'] = null;
-            }
 
             // Garante que parcelas seja 1 para pagamento à vista
             if ($validated['tipo_pagamento'] === 'avista') {
@@ -560,7 +580,7 @@ class ServicoController extends Controller
             return back()->withErrors(['error' => 'Erro ao atualizar serviço: ' . $e->getMessage()])->withInput();
         }
     }
-
+    
     private function processarAnexos(Servico $servico, $anexos, $descricoesAnexos)
     {
         foreach ($anexos as $index => $anexo) {
