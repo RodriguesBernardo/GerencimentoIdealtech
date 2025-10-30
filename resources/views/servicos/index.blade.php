@@ -158,7 +158,6 @@
                         <option value="">Todos os status</option>
                         <option value="pago" {{ request('status') == 'pago' ? 'selected' : '' }}>Pago</option>
                         <option value="pendente" {{ request('status') == 'pendente' ? 'selected' : '' }}>Pendente</option>
-                        <option value="nao_pago" {{ request('status') == 'nao_pago' ? 'selected' : '' }}>Não Pago</option>
                     </select>
                 </div>
             </div>
