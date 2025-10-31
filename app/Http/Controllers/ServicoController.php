@@ -44,7 +44,8 @@ class ServicoController extends Controller
         // Paginação apenas na query filtrada
         $servicos = $queryFiltrada->orderBy('data_servico', 'DESC')
             ->orderBy('created_at', 'DESC')
-            ->paginate(15);
+            ->paginate(15)
+            ->withQueryString();
 
         // **INSIGHTS: usar query separada com apenas o filtro de período**
         $queryInsights = Servico::with(['cliente', 'parcelasServico'])
@@ -634,22 +635,10 @@ class ServicoController extends Controller
     public function destroy(Servico $servico)
     {
         try {
-            \Log::info("=== EXCLUSÃO PERMANENTE DE SERVIÇO INICIADA ===");
-            \Log::info("Serviço ID: " . $servico->id);
-
-            // PRIMEIRO: Excluir permanentemente todas as parcelas
             $parcelasCount = $servico->parcelasServico()->count();
-            \Log::info("Parcelas a serem excluídas permanentemente: " . $parcelasCount);
-
-            // FORCE DELETE nas parcelas (remove do banco)
             $servico->parcelasServico()->forceDelete();
             \Log::info("Parcelas excluídas permanentemente do banco");
-
-            // DEPOIS: Excluir permanentemente o serviço
             $servico->forceDelete();
-            \Log::info("Serviço excluído permanentemente do banco");
-
-            \Log::info("=== EXCLUSÃO PERMANENTE CONCLUÍDA ===");
 
             return redirect()->route('servicos.index')
                 ->with('success', 'Serviço excluido');
