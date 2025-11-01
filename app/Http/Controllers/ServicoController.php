@@ -132,9 +132,38 @@ class ServicoController extends Controller
             $query->where('tipo_pagamento', $request->tipo_pagamento);
         }
 
-        $servicos = $query->latest('data_servico')->get();
+        // Aplicar ordenação baseada no parâmetro recebido
+        $ordenacao = $request->ordenacao ?? 'data_desc';
+        
+        switch ($ordenacao) {
+            case 'data_asc':
+                $query->orderBy('data_servico', 'ASC');
+                break;
+            case 'valor_desc':
+                $query->orderBy('valor', 'DESC');
+                break;
+            case 'valor_asc':
+                $query->orderBy('valor', 'ASC');
+                break;
+            case 'cliente_asc':
+                $query->join('clientes', 'servicos.cliente_id', '=', 'clientes.id')
+                    ->orderBy('clientes.nome', 'ASC')
+                    ->select('servicos.*');
+                break;
+            case 'cliente_desc':
+                $query->join('clientes', 'servicos.cliente_id', '=', 'clientes.id')
+                    ->orderBy('clientes.nome', 'DESC')
+                    ->select('servicos.*');
+                break;
+            case 'data_desc':
+            default:
+                $query->orderBy('data_servico', 'DESC');
+                break;
+        }
 
-        // Calcular insights considerando as parcelas - CÁLCULOS CORRETOS
+        $servicos = $query->get();
+
+        // Calcular insights considerando as parcelas
         $totalPago = 0;
         $totalPendente = 0;
         $totalDevedor = 0;
@@ -171,8 +200,15 @@ class ServicoController extends Controller
             'total_pendente' => $totalPendente,
         ];
 
-        $pdf = Pdf::loadView('servicos.pdf', compact('servicos', 'insights'));
-        return $pdf->download('servicos-' . now()->format('d-m-Y') . '.pdf');
+        // Passar a ordenação selecionada para a view
+        $ordenacaoSelecionada = $ordenacao;
+
+        $pdf = Pdf::loadView('servicos.pdf', compact('servicos', 'insights', 'ordenacaoSelecionada'));
+        
+        // Nome do arquivo com a ordenação
+        $nomeArquivo = 'servicos-' . now()->format('d-m-Y') . '-' . $ordenacao . '.pdf';
+        
+        return $pdf->download($nomeArquivo);
     }
 
     public function exportExcel(Request $request)

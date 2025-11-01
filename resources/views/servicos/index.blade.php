@@ -23,14 +23,57 @@
                 </a>
             </li>
             <li>
-                <a class="dropdown-item" href="{{ route('servicos.export.pdf', request()->query()) }}">
+                <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#exportPdfModal">
                     <i class="fas fa-file-pdf text-danger me-2"></i>PDF
-                </a>
+                </button>
             </li>
         </ul>
     </div>
     @endif
 @endauth
+
+<!-- Modal para Ordenação do PDF -->
+<div class="modal fade" id="exportPdfModal" tabindex="-1" aria-labelledby="exportPdfModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exportPdfModalLabel">
+                    <i class="fas fa-sort me-2"></i>Ordenar Relatório
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="exportPdfForm" method="GET" action="{{ route('servicos.export.pdf') }}">
+                    <!-- Campos hidden para manter os filtros atuais -->
+                    <input type="hidden" name="data_inicial" value="{{ request('data_inicial', now()->startOfMonth()->format('Y-m-d')) }}">
+                    <input type="hidden" name="data_final" value="{{ request('data_final', now()->endOfMonth()->format('Y-m-d')) }}">
+                    <input type="hidden" name="search" value="{{ request('search') }}">
+                    <input type="hidden" name="status" value="{{ request('status') }}">
+                    <input type="hidden" name="tipo_pagamento" value="{{ request('tipo_pagamento') }}">
+                    
+                    <div class="mb-3">
+                        <label for="ordenacao" class="form-label">Ordenar por:</label>
+                        <select class="form-select" id="ordenacao" name="ordenacao" required>
+                            <option value="data_desc">Data do Serviço (Mais Recente)</option>
+                            <option value="data_asc">Data do Serviço (Mais Antigo)</option>
+                            <option value="valor_desc">Valor (Maior para Menor)</option>
+                            <option value="valor_asc">Valor (Menor para Maior)</option>
+                            <option value="cliente_asc">Cliente (A-Z)</option>
+                            <option value="cliente_desc">Cliente (Z-A)</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('exportPdfForm').submit()">
+                    <i class="fas fa-download me-1"></i>Exportar PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('content')
