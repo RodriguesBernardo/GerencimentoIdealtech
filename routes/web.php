@@ -27,7 +27,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/clientes/search-ajax', [ClienteController::class, 'searchAjax'])->name('clientes.search-ajax');
     Route::resource('clientes', ClienteController::class);
     
-    // Serviços - CORREÇÃO: Definir rotas manualmente para evitar conflitos
+    // Serviços
     Route::get('/servicos', [ServicoController::class, 'index'])->name('servicos.index');
     Route::get('/servicos/create', [ServicoController::class, 'create'])->name('servicos.create');
     Route::post('/servicos', [ServicoController::class, 'store'])->name('servicos.store');
@@ -44,6 +44,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/servicos/export/excel', [ServicoController::class, 'exportExcel'])->name('servicos.export.excel');
     Route::get('/servicos/export/pdf', [ServicoController::class, 'exportPdf'])->name('servicos.export.pdf');
     
+    Route::get('/parcelas/{parcela}/comprovante', [ParcelaController::class, 'comprovante'])->name('parcelas.comprovante');
+
     // Rotas para anexos de serviços 
     Route::get('servicos/{servico}/anexos/{anexo}/download', [ServicoController::class, 'downloadAnexo'])->name('servicos.anexos.download');
     Route::delete('servicos/{servico}/anexos/{anexo}', [ServicoController::class, 'destroyAnexo'])->name('servicos.anexos.destroy');

@@ -117,6 +117,13 @@
                                                 <i class="fas fa-clock"></i>
                                             </button>
                                         </form>
+                                        
+                                        <!-- Botão para imprimir comprovante -->
+                                        <button type="button" class="btn btn-info" 
+                                                onclick="abrirModalComprovante({{ $parcela->id }})"
+                                                title="Imprimir Comprovante">
+                                            <i class="fas fa-print"></i>
+                                        </button>
                                         @endif
                                         
                                         @if($parcela->status == 'paga')
@@ -128,6 +135,13 @@
                                                 <i class="fas fa-check"></i>
                                             </button>
                                         </form>
+                                        
+                                        <!-- Botão para imprimir comprovante mesmo quando paga -->
+                                        <button type="button" class="btn btn-info" 
+                                                onclick="abrirModalComprovante({{ $parcela->id }})"
+                                                title="Imprimir Comprovante">
+                                            <i class="fas fa-print"></i>
+                                        </button>
                                         @endif
                                     </div>
                                 </td>
@@ -359,7 +373,58 @@
         </div>
     </div>
 </div>
+
+<!-- Modal de Impressão -->
+<div class="modal fade" id="modalImpressao" tabindex="-1" aria-labelledby="modalImpressaoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalImpressaoLabel">Imprimir Comprovante</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center">
+                    <p>Clique no botão abaixo para abrir o comprovante de pagamento.</p>
+                    <a href="#" id="linkComprovante" target="_blank" class="btn btn-primary">
+                        <i class="fas fa-print me-2"></i>Abrir Comprovante para Impressão
+                    </a>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
+
+@push('scripts')
+<script>
+function abrirModalComprovante(parcelaId) {
+    // Atualiza o link do comprovante com o ID da parcela
+    const link = document.getElementById('linkComprovante');
+    link.href = "{{ route('parcelas.comprovante', ':id') }}".replace(':id', parcelaId);
+    
+    // Abre o modal
+    const modal = new bootstrap.Modal(document.getElementById('modalImpressao'));
+    modal.show();
+}
+
+// Função para abrir impressão automaticamente quando o link for clicado
+document.getElementById('linkComprovante').addEventListener('click', function(e) {
+    // Fecha o modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('modalImpressao'));
+    modal.hide();
+    
+    // Abre a impressão após um pequeno delay para o modal fechar
+    setTimeout(() => {
+        window.open(this.href, '_blank').print();
+    }, 500);
+});
+</script>
+@endpush
+
 
 @push('styles')
 <style>

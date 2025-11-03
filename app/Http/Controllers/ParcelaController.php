@@ -57,4 +57,14 @@ class ParcelaController extends Controller
         
         return back()->with('success', 'Parcela excluída com sucesso!');
     }
+
+    
+    public function comprovante(Parcela $parcela)
+    {
+        $servico = $parcela->servico;
+        $cliente = $servico->cliente;
+        
+        return view('servicos.comprovante', compact('parcela', 'servico', 'cliente'));
+    }
+
 }
