@@ -783,25 +783,14 @@ class ServicoController extends Controller
     {
         try {
             $servico = Servico::withTrashed()->findOrFail($id);
-
-            \Log::info("=== EXCLUSÃO PERMANENTE MANUAL ===");
-            \Log::info("Serviço ID: " . $servico->id);
-
             // Excluir permanentemente as parcelas
             $parcelasCount = $servico->parcelasServico()->withTrashed()->count();
-            \Log::info("Parcelas encontradas: " . $parcelasCount);
-
             $servico->parcelasServico()->withTrashed()->forceDelete();
-            \Log::info("Parcelas excluídas permanentemente");
-
             // Excluir permanentemente o serviço
             $servico->forceDelete();
-            \Log::info("Serviço excluído permanentemente");
-
             return redirect()->route('servicos.index')
                 ->with('success', 'Serviço e parcelas removidos permanentemente da database!');
         } catch (\Exception $e) {
-            \Log::error("Erro na exclusão permanente: " . $e->getMessage());
             return redirect()->route('servicos.index')
                 ->with('error', 'Erro: ' . $e->getMessage());
         }
@@ -827,11 +816,6 @@ class ServicoController extends Controller
         ]);
 
         try {
-            \Log::info('=== ATUALIZANDO STATUS DE PAGAMENTO ===');
-            \Log::info('Serviço ID: ' . $servico->id);
-            \Log::info('Novo status: ' . $request->status_pagamento);
-            \Log::info('Observação: ' . $request->observacao_pagamento);
-
             // Atualiza o status do pagamento
             $servico->update([
                 'status_pagamento' => $request->status_pagamento,
@@ -845,7 +829,6 @@ class ServicoController extends Controller
                     'status' => 'paga',
                     'data_pagamento' => now()
                 ]);
-                \Log::info('Todas as parcelas marcadas como pagas');
             }
 
             // Se for mudado para pendente/nao_pago e for parcelado, reseta as parcelas
@@ -854,17 +837,10 @@ class ServicoController extends Controller
                     'status' => 'pendente',
                     'data_pagamento' => null
                 ]);
-                \Log::info('Status das parcelas resetado para pendente');
             }
-
-            \Log::info('=== STATUS ATUALIZADO COM SUCESSO ===');
-
             return back()->with('success', 'Status de pagamento atualizado com sucesso!');
 
         } catch (\Exception $e) {
-            \Log::error('Erro ao atualizar status de pagamento: ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
-
             return back()->with('error', 'Erro ao atualizar status: ' . $e->getMessage());
         }
     }

@@ -185,4 +185,28 @@ class Servico extends Model
     {
         return $this->data_vencimento < now() && $this->status === 'pendente';
     }
+
+    public function verificarEAtualizarStatusServico()
+    {
+        // Só aplica para serviços parcelados
+        if ($this->tipo_pagamento !== 'parcelado') {
+            return;
+        }
+
+        $totalParcelas = $this->parcelasServico()->count();
+        $parcelasPagas = $this->parcelasServico()->where('status', 'paga')->count();
+
+        if ($totalParcelas > 0 && $parcelasPagas == $totalParcelas) {
+            // Todas as parcelas estão pagas - marca serviço como pago
+            $this->update([
+                'status_pagamento' => 'pago',
+                'pago_at' => now()
+            ]);
+        } elseif ($parcelasPagas > 0 && $parcelasPagas < $totalParcelas) {
+            $this->update([
+                'status_pagamento' => 'pendente',
+                'pago_at' => null
+            ]);
+        }
+    }
 }
