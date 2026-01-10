@@ -49,39 +49,42 @@ class DashboardController extends Controller
     /**
      * Método para a rota /admin/relatorios
      */
-    public function relatorios()
+    public function relatorios(Request $request)
     {
-        $periodo = request('periodo', 'mes_atual');
-        $dataInicio = $this->getDataInicioPorPeriodo($periodo);
-        $dataFim = now()->format('Y-m-d');
+        if ($request->has('data_inicial') && $request->has('data_final')) {
+            $dataInicio = $request->data_inicial;
+            $dataFim = $request->data_final;
+            $periodo = 'personalizado';
+        } else {
+            $periodo = $request->get('periodo', 'mes_atual');
+            [$dataInicio, $dataFim] = $this->getDatasPorPeriodo($periodo);
+        }
 
         $dadosRelatorios = $this->getDadosRelatorios($dataInicio, $dataFim);
 
-        // Adicione estas variáveis para a view
         $periodoLabel = $this->getPeriodoLabel($periodo);
-        $statusColors = [
-            'pago' => '#10B981',
-            'pendente' => '#F59E0B',
-            'nao_pago' => '#EF4444',
-        ];
-
+        
         return view('admin.relatorios.index', compact(
             'dadosRelatorios',
             'periodo',
             'periodoLabel',
-            'statusColors'
+            'dataInicio', 
+            'dataFim'
         ));
     }
 
-    /**
-     * Exportar relatório
-     */
     public function exportarRelatorio(Request $request)
     {
         $tipo = $request->tipo ?? 'pdf';
-        $periodo = $request->periodo ?? 'mes_atual';
-        $dataInicio = $this->getDataInicioPorPeriodo($periodo);
-        $dataFim = now()->format('Y-m-d');
+        
+        if ($request->has('data_inicial') && $request->has('data_final')) {
+            $dataInicio = $request->data_inicial;
+            $dataFim = $request->data_final;
+            $periodo = 'personalizado';
+        } else {
+            $periodo = $request->periodo ?? 'mes_atual';
+            [$dataInicio, $dataFim] = $this->getDatasPorPeriodo($periodo);
+        }
 
         $dados = $this->getDadosRelatorios($dataInicio, $dataFim);
 
@@ -92,6 +95,41 @@ class DashboardController extends Controller
         return $this->exportarPDF($dados, $periodo);
     }
 
+    private function getDatasPorPeriodo($periodo)
+    {
+        switch ($periodo) {
+            case 'hoje':
+                return [now()->format('Y-m-d'), now()->format('Y-m-d')];
+            
+            case '7dias':
+                return [now()->subDays(7)->format('Y-m-d'), now()->format('Y-m-d')];
+
+            case 'mes_anterior': 
+                return [
+                    now()->subMonth()->startOfMonth()->format('Y-m-d'), 
+                    now()->subMonth()->endOfMonth()->format('Y-m-d')
+                ];
+
+            case 'ano_atual':
+                return [
+                    now()->startOfYear()->format('Y-m-d'), 
+                    now()->endOfYear()->format('Y-m-d')
+                ];
+
+            case 'ano_passado':
+                return [
+                    now()->subYear()->startOfYear()->format('Y-m-d'), 
+                    now()->subYear()->endOfYear()->format('Y-m-d')
+                ];
+
+            case 'mes_atual':
+            default:
+                return [
+                    now()->startOfMonth()->format('Y-m-d'), 
+                    now()->endOfMonth()->format('Y-m-d')
+                ];
+        }
+    } 
     /**
      * Clientes que possuem pendências financeiras
      */

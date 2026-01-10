@@ -26,6 +26,51 @@
         </div>
     </div>
 
+    <div class="container-fluid">  
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body py-3">
+                        <form action="{{ route('admin.relatorios.index') }}" method="GET" id="formFiltro">
+                            <div class="row align-items-end">
+                                <div class="col-lg-7 mb-3 mb-lg-0">
+                                    <label class="form-label text-muted small fw-bold text-uppercase">Períodos Rápidos</label>
+                                    <div class="btn-group w-100" role="group">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setPeriodo('mes_atual')">Este Mês</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setPeriodo('mes_anterior')">Mês Passado</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setPeriodo('ano_atual')">Este Ano</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setPeriodo('ano_passado')">Ano Passado</button>
+                                    </div>
+                                </div>
+
+                                <div class="col-lg-5">
+                                    <div class="row g-2">
+                                        <div class="col-5">
+                                            <label class="form-label text-muted small fw-bold">Início</label>
+                                            <input type="date" class="form-control form-control-sm" name="data_inicial" id="data_inicial" 
+                                                value="{{ $dataInicio ?? now()->startOfMonth()->format('Y-m-d') }}">
+                                        </div>
+                                        <div class="col-5">
+                                            <label class="form-label text-muted small fw-bold">Fim</label>
+                                            <input type="date" class="form-control form-control-sm" name="data_final" id="data_final" 
+                                                value="{{ $dataFim ?? now()->endOfMonth()->format('Y-m-d') }}">
+                                        </div>
+                                        <div class="col-2">
+                                            <label class="form-label d-block">&nbsp;</label>
+                                            <button type="submit" class="btn btn-primary btn-sm w-100" title="Filtrar">
+                                                <i class="fas fa-filter"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Cards de Métricas Principais -->
     <div class="row mb-4">
         <div class="col-xl-2 col-md-4 col-6 mb-3">
@@ -626,5 +671,38 @@
             }
         });
     });
+
+    function setPeriodo(tipo) {
+        const hoje = new Date();
+        let inicio, fim;
+
+        const formatar = (data) => data.toISOString().split('T')[0];
+
+        switch(tipo) {
+            case 'mes_atual':
+                inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+                fim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+                break;
+            case 'mes_anterior':
+                inicio = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+                fim = new Date(hoje.getFullYear(), hoje.getMonth(), 0);
+                break;
+            case 'ano_atual':
+                inicio = new Date(hoje.getFullYear(), 0, 1);
+                fim = new Date(hoje.getFullYear(), 11, 31);
+                break;
+            case 'ano_passado':
+                inicio = new Date(hoje.getFullYear() - 1, 0, 1);
+                fim = new Date(hoje.getFullYear() - 1, 11, 31);
+                break;
+        }
+
+        document.getElementById('data_inicial').value = formatar(inicio);
+        document.getElementById('data_final').value = formatar(fim);
+        
+        // Submete o formulário automaticamente ao clicar no botão rápido
+        document.getElementById('formFiltro').submit();
+    }
+
 </script>
 @endpush

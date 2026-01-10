@@ -56,51 +56,65 @@ class ServicoController extends Controller
         return view('servicos.index', compact('servicos', 'insights', 'dataInicial', 'dataFinal'));
     }
 
-    private function calcularInsightsComParcelas($query)
+private function calcularInsightsComParcelas($query)
     {
-        // Garantir que pegamos todos os registros (sem paginação)
-        $servicosComParcelas = $query->with('parcelasServico')->get();
+        $servicosDaListagem = $query->with('parcelasServico')->get();
 
-        // Cálculos considerando as parcelas
-        $totalPago = 0;
-        $totalPendente = 0;
-        $totalDevedor = 0;
-        $valorTotal = 0;
+        $totalVendidoPeriodo = 0;
+        $totalDevedorListagem = 0;
 
-        foreach ($servicosComParcelas as $servico) {
-            $valorTotal += $servico->valor ?? 0;
+        foreach ($servicosDaListagem as $servico) {
+            $totalVendidoPeriodo += $servico->valor ?? 0;
 
             if ($servico->tipo_pagamento == 'avista') {
-                // Serviço à vista
-                if ($servico->status_pagamento == 'pago') {
-                    $totalPago += $servico->valor;
-                } elseif ($servico->status_pagamento == 'pendente') {
-                    $totalPendente += $servico->valor;
-                    $totalDevedor += $servico->valor;
-                } elseif ($servico->status_pagamento == 'nao_pago') {
-                    $totalDevedor += $servico->valor;
+                if (in_array($servico->status_pagamento, ['pendente', 'nao_pago'])) {
+                    $totalDevedorListagem += $servico->valor;
                 }
             } else {
-                // Serviço parcelado - calcular baseado nas parcelas
-                $parcelasPagas = $servico->parcelasServico->where('status', 'paga');
-                $parcelasPendentes = $servico->parcelasServico->where('status', 'pendente');
-                $parcelasNaoPagas = $servico->parcelasServico->where('status', 'nao_paga');
-
-                $totalPago += $parcelasPagas->sum('valor_parcela');
-                $totalPendente += $parcelasPendentes->sum('valor_parcela');
-                $totalDevedor += $parcelasPendentes->sum('valor_parcela') + $parcelasNaoPagas->sum('valor_parcela');
+                $parcelasEmAberto = $servico->parcelasServico->whereIn('status', ['pendente', 'nao_paga']);
+                $totalDevedorListagem += $parcelasEmAberto->sum('valor_parcela');
             }
         }
 
+        $anoAtual = now()->year;
+        $dataInicioPeriodo = request('data_inicial') ?? now()->startOfMonth()->format('Y-m-d');
+        $dataFimPeriodo = request('data_final') ?? now()->endOfMonth()->format('Y-m-d');
+
+        $recebidoAvistaPeriodo = Servico::whereBetween('data_servico', [$dataInicioPeriodo, $dataFimPeriodo])
+            ->where('tipo_pagamento', 'avista')
+            ->where('status_pagamento', 'pago')
+            ->sum('valor');
+
+        $recebidoParceladoPeriodo = \Illuminate\Support\Facades\DB::table('parcelas')
+            ->whereBetween('data_pagamento', [$dataInicioPeriodo, $dataFimPeriodo])
+            ->where('status', 'paga')
+            ->whereNull('deleted_at')
+            ->sum('valor_parcela');
+
+        $totalRecebidoPeriodo = $recebidoAvistaPeriodo + $recebidoParceladoPeriodo;
+
+        $recebidoAvistaAno = Servico::whereYear('data_servico', $anoAtual)
+            ->where('tipo_pagamento', 'avista')
+            ->where('status_pagamento', 'pago')
+            ->sum('valor');
+
+        $recebidoParceladoAno = \Illuminate\Support\Facades\DB::table('parcelas')
+            ->whereYear('data_pagamento', $anoAtual)
+            ->where('status', 'paga')
+            ->whereNull('deleted_at')
+            ->sum('valor_parcela');
+
+        $totalRecebidoAno = $recebidoAvistaAno + $recebidoParceladoAno;
+
         return [
             'total_clientes' => Cliente::count(),
-            'total_servicos' => $servicosComParcelas->count(),
-            'valor_total' => $valorTotal,
-            'valor_mes_atual' => $valorTotal, // Já está filtrado pelo período
-            'valor_ano_atual' => Servico::whereYear('data_servico', now()->year)->sum('valor') ?? 0,
-            'total_devedor' => $totalDevedor,
-            'total_pago' => $totalPago,
-            'total_pendente' => $totalPendente,
+            'total_servicos' => $servicosDaListagem->count(),
+            'valor_total' => $totalVendidoPeriodo,
+            'valor_mes_atual' => $totalRecebidoPeriodo,
+            'valor_ano_atual' => $totalRecebidoAno,
+            'total_devedor' => $totalDevedorListagem,
+            'total_pago' => $totalRecebidoPeriodo,
+            'total_pendente' => $totalDevedorListagem,
         ];
     }
 
@@ -751,29 +765,13 @@ class ServicoController extends Controller
     {
         try {
             $servico = Servico::withTrashed()->findOrFail($id);
-
-            \Log::info("=== EXCLUSÃO PERMANENTE DE SERVIÇO INICIADA ===");
-            \Log::info("Serviço ID: " . $servico->id);
-
-            // PRIMEIRO: Excluir permanentemente todas as parcelas
             $parcelasCount = $servico->parcelasServico()->withTrashed()->count();
-            \Log::info("Parcelas a serem excluídas permanentemente: " . $parcelasCount);
-
-            // FORCE DELETE nas parcelas
             $servico->parcelasServico()->withTrashed()->forceDelete();
-            \Log::info("Parcelas excluídas permanentemente");
 
-            // DEPOIS: Excluir permanentemente o serviço
             $servico->forceDelete();
-            \Log::info("Serviço excluído permanentemente");
-
-            \Log::info("=== EXCLUSÃO PERMANENTE CONCLUÍDA ===");
-
             return redirect()->route('servicos.index')
                 ->with('success', 'Serviço excluído');
         } catch (\Exception $e) {
-            \Log::error("Erro ao excluir permanentemente serviço ID {$id}: " . $e->getMessage());
-
             return redirect()->route('servicos.index')
                 ->with('error', 'Erro ao excluir serviço: ' . $e->getMessage());
         }
@@ -816,7 +814,6 @@ class ServicoController extends Controller
         ]);
 
         try {
-            // Atualiza o status do pagamento
             $servico->update([
                 'status_pagamento' => $request->status_pagamento,
                 'observacao_pagamento' => $request->observacao_pagamento,
