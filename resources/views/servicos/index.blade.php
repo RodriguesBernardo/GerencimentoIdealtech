@@ -5,31 +5,31 @@
 @section('header-actions')
 {{-- Botão Novo Serviço - apenas para usuários com permissão --}}
 @if(auth()->user()->is_admin || in_array('servicos.create', auth()->user()->permissoes ?? []))
-    <a href="{{ route('servicos.create') }}" class="btn btn-idealtech-blue">
-        <i class="fas fa-plus me-2"></i>Novo Serviço
-    </a>
+<a href="{{ route('servicos.create') }}" class="btn btn-idealtech-blue">
+    <i class="fas fa-plus me-2"></i>Novo Serviço
+</a>
 @endif
 
 @auth
-    @if(auth()->user()->is_admin || in_array('relatorios.view', auth()->user()->permissoes ?? []))
-    <div class="btn-group">
-        <button type="button" class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
-            <i class="fas fa-download me-2"></i>Exportar
-        </button>
-        <ul class="dropdown-menu">
-            <li>
-                <a class="dropdown-item" href="{{ route('servicos.export.excel', request()->query()) }}">
-                    <i class="fas fa-file-excel text-success me-2"></i>Excel
-                </a>
-            </li>
-            <li>
-                <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#exportPdfModal">
-                    <i class="fas fa-file-pdf text-danger me-2"></i>PDF
-                </button>
-            </li>
-        </ul>
-    </div>
-    @endif
+@if(auth()->user()->is_admin || in_array('relatorios.view', auth()->user()->permissoes ?? []))
+<div class="btn-group">
+    <button type="button" class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
+        <i class="fas fa-download me-2"></i>Exportar
+    </button>
+    <ul class="dropdown-menu">
+        <li>
+            <a class="dropdown-item" href="{{ route('servicos.export.excel', request()->query()) }}">
+                <i class="fas fa-file-excel text-success me-2"></i>Excel
+            </a>
+        </li>
+        <li>
+            <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#exportPdfModal">
+                <i class="fas fa-file-pdf text-danger me-2"></i>PDF
+            </button>
+        </li>
+    </ul>
+</div>
+@endif
 @endauth
 
 <!-- Modal para Ordenação do PDF -->
@@ -50,7 +50,7 @@
                     <input type="hidden" name="search" value="{{ request('search') }}">
                     <input type="hidden" name="status" value="{{ request('status') }}">
                     <input type="hidden" name="tipo_pagamento" value="{{ request('tipo_pagamento') }}">
-                    
+
                     <div class="mb-3">
                         <label for="ordenacao" class="form-label">Ordenar por:</label>
                         <select class="form-select" id="ordenacao" name="ordenacao" required>
@@ -77,94 +77,90 @@
 @endsection
 
 @section('content')
-<!-- Insights Cards - Apenas para Admin ou usuários com permissão de relatórios -->
 @auth
-    @if((auth()->user()->is_admin || in_array('relatorios.view', auth()->user()->permissoes ?? [])) && isset($insights))
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6">
-            <div class="card card-body bg-primary bg-opacity-10 border border-primary border-opacity-25">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <h5 class="mb-0">{{ number_format($insights['total_clientes']) }}</h5>
-                        <small class="text-muted">Total de Clientes</small>
-                    </div>
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-users fa-2x text-primary"></i>
-                    </div>
+@if((auth()->user()->is_admin || in_array('relatorios.view', auth()->user()->permissoes ?? [])) && isset($insights))
+
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="card card-body bg-success bg-opacity-10 border border-success border-opacity-25 h-100">
+            <div class="d-flex align-items-center">
+                <div class="flex-grow-1">
+                    <h5 class="mb-0">R$ {{ number_format($insights['valor_mes_atual'], 2, ',', '.') }}</h5>
+                    <small class="text-muted">
+                        Valor do Período
+                        <i class="fas fa-question-circle ms-1 text-success"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
+                            title="Regime de Caixa: Soma de todos os pagamentos recebidos DENTRO das datas filtradas (independente de quando o serviço foi feito)."></i>
+                    </small>
                 </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6">
-            <div class="card card-body bg-success bg-opacity-10 border border-success border-opacity-25">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <h5 class="mb-0">R$ {{ number_format($insights['valor_mes_atual'], 2, ',', '.') }}</h5>
-                        <small class="text-muted">Valor do Mês</small>
-                    </div>
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-calendar-alt fa-2x text-success"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6">
-            <div class="card card-body bg-info bg-opacity-10 border border-info border-opacity-25">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <h5 class="mb-0">R$ {{ number_format($insights['valor_ano_atual'], 2, ',', '.') }}</h5>
-                        <small class="text-muted">Valor do Ano</small>
-                    </div>
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-chart-line fa-2x text-info"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6">
-            <div class="card card-body bg-warning bg-opacity-10 border border-warning border-opacity-25">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <h5 class="mb-0">R$ {{ number_format($insights['total_devedor'], 2, ',', '.') }}</h5>
-                        <small class="text-muted">Total Devedor</small>
-                    </div>
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
-                    </div>
+                <div class="flex-shrink-0">
+                    <i class="fas fa-calendar-alt fa-2x text-success"></i>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Cards Secundários -->
-    <div class="row mb-4">
-        <div class="col-xl-4 col-md-6">
-            <div class="card card-body bg-success bg-opacity-10 border border-success border-opacity-25">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <h5 class="mb-0">R$ {{ number_format($insights['total_pago'], 2, ',', '.') }}</h5>
-                        <small class="text-muted">Total Pago</small>
-                    </div>
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-check-circle fa-2x text-success"></i>
-                    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card card-body bg-info bg-opacity-10 border border-info border-opacity-25 h-100">
+            <div class="d-flex align-items-center">
+                <div class="flex-grow-1">
+                    <h5 class="mb-0">R$ {{ number_format($insights['valor_ano_atual'], 2, ',', '.') }}</h5>
+                    <small class="text-muted">
+                        Valor do Ano
+                        <i class="fas fa-question-circle ms-1 text-info"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
+                            title="Regime de Caixa Anual: Soma de tudo que foi recebido no ano atual (01/Jan até hoje), ignorando o filtro de data selecionado."></i>
+                    </small>
                 </div>
-            </div>
-        </div>
-        <div class="col-xl-4 col-md-6">
-            <div class="card card-body bg-dark bg-opacity-10 border border-dark border-opacity-25">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <h5 class="mb-0">R$ {{ number_format($insights['valor_total'], 2, ',', '.') }}</h5>
-                        <small class="text-muted">Valor Total</small>
-                    </div>
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-dollar-sign fa-2x text-dark"></i>
-                    </div>
+                <div class="flex-shrink-0">
+                    <i class="fas fa-chart-line fa-2x text-info"></i>
                 </div>
             </div>
         </div>
     </div>
-    @endif
+
+    <div class="col-xl-3 col-md-6">
+        <div class="card card-body bg-warning bg-opacity-10 border border-warning border-opacity-25 h-100">
+            <div class="d-flex align-items-center">
+                <div class="flex-grow-1">
+                    <h5 class="mb-0">R$ {{ number_format($insights['total_devedor'], 2, ',', '.') }}</h5>
+                    <small class="text-muted">
+                        Pendente do Período
+                        <i class="fas fa-question-circle ms-1 text-warning"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
+                            title="Soma do que ficou 'Pendente' apenas dos serviços listados/filtrados abaixo."></i>
+                    </small>
+                </div>
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card card-body bg-dark bg-opacity-10 border border-dark border-opacity-25 h-100">
+            <div class="d-flex align-items-center">
+                <div class="flex-grow-1">
+                    <h5 class="mb-0">R$ {{ number_format($insights['valor_total'], 2, ',', '.') }}</h5>
+                    <small class="text-muted">
+                        Valor Total (Vendas)
+                        <i class="fas fa-question-circle ms-1 text-dark"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
+                            title="Regime de Competência: Soma total dos contratos fechados no período, independentemente se já foram pagos ou não."></i>
+                    </small>
+                </div>
+                <div class="flex-shrink-0">
+                    <i class="fas fa-dollar-sign fa-2x text-dark"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 @endauth
 
 <div class="card">
@@ -178,21 +174,21 @@
                 <div class="col-md-3">
                     <div class="input-group">
                         <span class="input-group-text"><i class="fas fa-calendar-start"></i></span>
-                        <input type="date" name="data_inicial" class="form-control" 
+                        <input type="date" name="data_inicial" class="form-control"
                             value="{{ request('data_inicial', now()->startOfMonth()->format('Y-m-d')) }}">
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="input-group">
                         <span class="input-group-text"><i class="fas fa-calendar-end"></i></span>
-                        <input type="date" name="data_final" class="form-control" 
+                        <input type="date" name="data_final" class="form-control"
                             value="{{ request('data_final', now()->endOfMonth()->format('Y-m-d')) }}">
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="input-group">
                         <span class="input-group-text"><i class="fas fa-search"></i></span>
-                        <input type="text" name="search" class="form-control" placeholder="Buscar por cliente..." 
+                        <input type="text" name="search" class="form-control" placeholder="Buscar por cliente..."
                             value="{{ request('search') }}">
                     </div>
                 </div>
@@ -261,7 +257,7 @@
                                 <i class="fas {{ $servico->tipo_pagamento == 'avista' ? 'fa-money-bill-wave' : 'fa-credit-card' }} me-1"></i>
                                 {{ $servico->tipo_pagamento == 'avista' ? 'À Vista' : 'Parcelado' }}
                                 @if($servico->tipo_pagamento == 'parcelado')
-                                    ({{ $servico->parcelas }}x)
+                                ({{ $servico->parcelas }}x)
                                 @endif
                             </span>
                         </td>
@@ -285,64 +281,64 @@
                         </td>
                         <td>
                             @if($servico->tipo_pagamento == 'parcelado' && $servico->parcelas > 1)
-                                @php
-                                    $parcelasPagas = $servico->parcelasServico->where('status', 'paga')->count();
-                                    $totalParcelas = $servico->parcelasServico->count();
-                                    $progresso = $totalParcelas > 0 ? ($parcelasPagas / $totalParcelas) * 100 : 0;
-                                @endphp
-                                <div class="d-flex align-items-center">
-                                    <div class="flex-grow-1 me-3">
-                                        <small class="d-block text-muted mb-1">
-                                            {{ $parcelasPagas }}/{{ $totalParcelas }} parcelas
-                                        </small>
-                                        @if($totalParcelas > 0)
-                                            <div class="progress" style="height: 6px;">
-                                                <div class="progress-bar bg-success progress-dynamic" 
-                                                     data-width="{{ (int)$progresso }}"
-                                                     role="progressbar">
-                                                </div>
-                                            </div>
-                                        @endif
+                            @php
+                            $parcelasPagas = $servico->parcelasServico->where('status', 'paga')->count();
+                            $totalParcelas = $servico->parcelasServico->count();
+                            $progresso = $totalParcelas > 0 ? ($parcelasPagas / $totalParcelas) * 100 : 0;
+                            @endphp
+                            <div class="d-flex align-items-center">
+                                <div class="flex-grow-1 me-3">
+                                    <small class="d-block text-muted mb-1">
+                                        {{ $parcelasPagas }}/{{ $totalParcelas }} parcelas
+                                    </small>
+                                    @if($totalParcelas > 0)
+                                    <div class="progress" style="height: 6px;">
+                                        <div class="progress-bar bg-success progress-dynamic"
+                                            data-width="{{ (int)$progresso }}"
+                                            role="progressbar">
+                                        </div>
                                     </div>
-                                    <div class="flex-shrink-0">
-                                        <small class="fw-bold {{ $progresso == 100 ? 'text-success' : 'text-primary' }}">
-                                            {{ (int)$progresso }}%
-                                        </small>
-                                    </div>
+                                    @endif
                                 </div>
+                                <div class="flex-shrink-0">
+                                    <small class="fw-bold {{ $progresso == 100 ? 'text-success' : 'text-primary' }}">
+                                        {{ (int)$progresso }}%
+                                    </small>
+                                </div>
+                            </div>
                             @else
-                                <span class="text-muted">-</span>
+                            <span class="text-muted">-</span>
                             @endif
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm">
                                 {{-- Ver detalhes - disponível para todos com permissão de visualização --}}
                                 @if(auth()->user()->is_admin || in_array('servicos.view', auth()->user()->permissoes ?? []))
-                                    <a href="{{ route('servicos.show', $servico) }}" class="btn btn-outline-primary" 
+                                <a href="{{ route('servicos.show', $servico) }}" class="btn btn-outline-primary"
                                     data-bs-toggle="tooltip" title="Ver detalhes">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
+                                    <i class="fas fa-eye"></i>
+                                </a>
                                 @endif
-                                
+
                                 {{-- Editar - apenas com permissão --}}
                                 @if(auth()->user()->is_admin || in_array('servicos.edit', auth()->user()->permissoes ?? []))
-                                    <a href="{{ route('servicos.edit', $servico) }}" class="btn btn-outline-secondary"
+                                <a href="{{ route('servicos.edit', $servico) }}" class="btn btn-outline-secondary"
                                     data-bs-toggle="tooltip" title="Editar">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
+                                    <i class="fas fa-edit"></i>
+                                </a>
                                 @endif
-                                
+
                                 {{-- Deletar - apenas com permissão --}}
                                 @if(auth()->user()->is_admin || in_array('servicos.delete', auth()->user()->permissoes ?? []))
-                                    <form action="{{ route('servicos.destroy', $servico) }}" method="POST" class="d-inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-outline-danger"
-                                                data-bs-toggle="tooltip" title="Excluir"
-                                                onclick="return confirm('Tem certeza que deseja excluir este serviço?')">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
+                                <form action="{{ route('servicos.destroy', $servico) }}" method="POST" class="d-inline">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-outline-danger"
+                                        data-bs-toggle="tooltip" title="Excluir"
+                                        onclick="return confirm('Tem certeza que deseja excluir este serviço?')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
                                 @endif
                             </div>
                         </td>
@@ -372,78 +368,78 @@
                 <ul class="pagination pagination-sm mb-0">
                     <!-- Previous Page Link -->
                     @if($servicos->onFirstPage())
-                        <li class="page-item disabled">
-                            <span class="page-link">
-                                <i class="fas fa-chevron-left fa-xs"></i>
-                            </span>
-                        </li>
+                    <li class="page-item disabled">
+                        <span class="page-link">
+                            <i class="fas fa-chevron-left fa-xs"></i>
+                        </span>
+                    </li>
                     @else
-                        <li class="page-item">
-                            <a class="page-link" href="{{ $servicos->previousPageUrl() }}" aria-label="Anterior">
-                                <i class="fas fa-chevron-left fa-xs"></i>
-                            </a>
-                        </li>
+                    <li class="page-item">
+                        <a class="page-link" href="{{ $servicos->previousPageUrl() }}" aria-label="Anterior">
+                            <i class="fas fa-chevron-left fa-xs"></i>
+                        </a>
+                    </li>
                     @endif
 
                     <!-- Pagination Elements - Mostrar apenas algumas páginas -->
                     @php
-                        $current = $servicos->currentPage();
-                        $last = $servicos->lastPage();
-                        $start = max(1, $current - 2);
-                        $end = min($last, $current + 2);
+                    $current = $servicos->currentPage();
+                    $last = $servicos->lastPage();
+                    $start = max(1, $current - 2);
+                    $end = min($last, $current + 2);
                     @endphp
 
                     <!-- Primeira página -->
                     @if($start > 1)
-                        <li class="page-item">
-                            <a class="page-link" href="{{ $servicos->url(1) }}">1</a>
-                        </li>
-                        @if($start > 2)
-                            <li class="page-item disabled">
-                                <span class="page-link">...</span>
-                            </li>
-                        @endif
+                    <li class="page-item">
+                        <a class="page-link" href="{{ $servicos->url(1) }}">1</a>
+                    </li>
+                    @if($start > 2)
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                    @endif
                     @endif
 
                     <!-- Páginas do meio -->
                     @for($page = $start; $page <= $end; $page++)
-                        @if($page == $servicos->currentPage())
-                            <li class="page-item active">
-                                <span class="page-link">{{ $page }}</span>
-                            </li>
+                        @if($page==$servicos->currentPage())
+                        <li class="page-item active">
+                            <span class="page-link">{{ $page }}</span>
+                        </li>
                         @else
-                            <li class="page-item">
-                                <a class="page-link" href="{{ $servicos->url($page) }}">{{ $page }}</a>
-                            </li>
+                        <li class="page-item">
+                            <a class="page-link" href="{{ $servicos->url($page) }}">{{ $page }}</a>
+                        </li>
                         @endif
-                    @endfor
+                        @endfor
 
-                    <!-- Última página -->
-                    @if($end < $last)
-                        @if($end < $last - 1)
+                        <!-- Última página -->
+                        @if($end < $last)
+                            @if($end < $last - 1)
                             <li class="page-item disabled">
-                                <span class="page-link">...</span>
+                            <span class="page-link">...</span>
                             </li>
-                        @endif
-                        <li class="page-item">
-                            <a class="page-link" href="{{ $servicos->url($last) }}">{{ $last }}</a>
-                        </li>
-                    @endif
+                            @endif
+                            <li class="page-item">
+                                <a class="page-link" href="{{ $servicos->url($last) }}">{{ $last }}</a>
+                            </li>
+                            @endif
 
-                    <!-- Next Page Link -->
-                    @if($servicos->hasMorePages())
-                        <li class="page-item">
-                            <a class="page-link" href="{{ $servicos->nextPageUrl() }}" aria-label="Próximo">
-                                <i class="fas fa-chevron-right fa-xs"></i>
-                            </a>
-                        </li>
-                    @else
-                        <li class="page-item disabled">
-                            <span class="page-link">
-                                <i class="fas fa-chevron-right fa-xs"></i>
-                            </span>
-                        </li>
-                    @endif
+                            <!-- Next Page Link -->
+                            @if($servicos->hasMorePages())
+                            <li class="page-item">
+                                <a class="page-link" href="{{ $servicos->nextPageUrl() }}" aria-label="Próximo">
+                                    <i class="fas fa-chevron-right fa-xs"></i>
+                                </a>
+                            </li>
+                            @else
+                            <li class="page-item disabled">
+                                <span class="page-link">
+                                    <i class="fas fa-chevron-right fa-xs"></i>
+                                </span>
+                            </li>
+                            @endif
                 </ul>
             </nav>
         </div>
@@ -461,50 +457,50 @@
         text-transform: uppercase;
         color: #6c757d;
     }
-    
+
     .table td {
         vertical-align: middle;
         font-size: 0.9rem;
     }
-    
+
     .progress {
         border-radius: 10px;
     }
-    
+
     .progress-bar {
         border-radius: 10px;
     }
-    
+
     .page-link {
         border: 1px solid #dee2e6;
         color: #6c757d;
         padding: 0.375rem 0.75rem;
         font-size: 0.875rem;
     }
-    
+
     .page-item.active .page-link {
         background-color: #0d6efd;
         border-color: #0d6efd;
     }
-    
+
     .page-link:hover {
         color: #0d6efd;
         background-color: #e9ecef;
         border-color: #dee2e6;
     }
-    
-    .btn-group-sm > .btn {
+
+    .btn-group-sm>.btn {
         padding: 0.25rem 0.5rem;
     }
-    
+
     .fa-xs {
         font-size: 0.75rem;
     }
-    
+
     .pagination {
         flex-wrap: wrap;
     }
-    
+
     .card-body {
         position: relative;
     }
@@ -522,7 +518,7 @@
 
         // Inicializar tooltips
         const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        const tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
 

@@ -17,11 +17,9 @@ class ServicoController extends Controller
     {
         $query = Servico::with(['cliente', 'parcelasServico']);
 
-        // Definir datas padrão (mês atual) - ESTAS SÃO AS DATAS PARA OS INSIGHTS
         $dataInicial = $request->data_inicial ?? now()->startOfMonth()->format('Y-m-d');
         $dataFinal = $request->data_final ?? now()->endOfMonth()->format('Y-m-d');
 
-        // **QUERY PARA FILTRAGEM NA LISTA** (com todos os filtros)
         $queryFiltrada = clone $query;
 
         // Aplicar filtros apenas na query da listagem
@@ -47,7 +45,6 @@ class ServicoController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        // **INSIGHTS: usar query separada com apenas o filtro de período**
         $queryInsights = Servico::with(['cliente', 'parcelasServico'])
             ->whereBetween('data_servico', [$dataInicial, $dataFinal]);
 
@@ -56,64 +53,84 @@ class ServicoController extends Controller
         return view('servicos.index', compact('servicos', 'insights', 'dataInicial', 'dataFinal'));
     }
 
-private function calcularInsightsComParcelas($query)
+    private function calcularInsightsComParcelas($query)
     {
         $servicosDaListagem = $query->with('parcelasServico')->get();
+        $totalVendidoPeriodo = $servicosDaListagem->sum('valor');
 
-        $totalVendidoPeriodo = 0;
         $totalDevedorListagem = 0;
-
         foreach ($servicosDaListagem as $servico) {
-            $totalVendidoPeriodo += $servico->valor ?? 0;
-
             if ($servico->tipo_pagamento == 'avista') {
                 if (in_array($servico->status_pagamento, ['pendente', 'nao_pago'])) {
                     $totalDevedorListagem += $servico->valor;
                 }
             } else {
-                $parcelasEmAberto = $servico->parcelasServico->whereIn('status', ['pendente', 'nao_paga']);
-                $totalDevedorListagem += $parcelasEmAberto->sum('valor_parcela');
+                $totalDevedorListagem += $servico->parcelasServico
+                    ->whereIn('status', ['pendente', 'nao_paga'])
+                    ->sum('valor_parcela');
             }
         }
+
+        $devedorAvistaGeral = \App\Models\Servico::where('tipo_pagamento', 'avista')
+            ->whereIn('status_pagamento', ['pendente', 'nao_pago'])
+            ->sum('valor');
+
+        $devedorParceladoGeral = \Illuminate\Support\Facades\DB::table('parcelas')
+            ->join('servicos', 'parcelas.servico_id', '=', 'servicos.id')
+            ->whereIn('parcelas.status', ['pendente', 'nao_paga'])
+            ->whereNull('parcelas.deleted_at')
+            ->whereNull('servicos.deleted_at')
+            ->sum('parcelas.valor_parcela');
+
+        $totalDevedorGeral = $devedorAvistaGeral + $devedorParceladoGeral;
 
         $anoAtual = now()->year;
         $dataInicioPeriodo = request('data_inicial') ?? now()->startOfMonth()->format('Y-m-d');
         $dataFimPeriodo = request('data_final') ?? now()->endOfMonth()->format('Y-m-d');
 
-        $recebidoAvistaPeriodo = Servico::whereBetween('data_servico', [$dataInicioPeriodo, $dataFimPeriodo])
+        $recebidoAvistaPeriodo = \App\Models\Servico::whereBetween('data_servico', [$dataInicioPeriodo, $dataFimPeriodo])
             ->where('tipo_pagamento', 'avista')
             ->where('status_pagamento', 'pago')
             ->sum('valor');
 
         $recebidoParceladoPeriodo = \Illuminate\Support\Facades\DB::table('parcelas')
-            ->whereBetween('data_pagamento', [$dataInicioPeriodo, $dataFimPeriodo])
-            ->where('status', 'paga')
-            ->whereNull('deleted_at')
-            ->sum('valor_parcela');
+            ->join('servicos', 'parcelas.servico_id', '=', 'servicos.id')
+            ->whereBetween('parcelas.data_pagamento', [$dataInicioPeriodo, $dataFimPeriodo])
+            ->where('parcelas.status', 'paga')
+            ->whereNull('parcelas.deleted_at')
+            ->whereNull('servicos.deleted_at')
+            ->sum('parcelas.valor_parcela');
 
         $totalRecebidoPeriodo = $recebidoAvistaPeriodo + $recebidoParceladoPeriodo;
 
-        $recebidoAvistaAno = Servico::whereYear('data_servico', $anoAtual)
+        $recebidoAvistaAno = \App\Models\Servico::whereYear('data_servico', $anoAtual)
             ->where('tipo_pagamento', 'avista')
             ->where('status_pagamento', 'pago')
             ->sum('valor');
 
         $recebidoParceladoAno = \Illuminate\Support\Facades\DB::table('parcelas')
-            ->whereYear('data_pagamento', $anoAtual)
-            ->where('status', 'paga')
-            ->whereNull('deleted_at')
-            ->sum('valor_parcela');
+            ->join('servicos', 'parcelas.servico_id', '=', 'servicos.id')
+            ->whereYear('parcelas.data_pagamento', $anoAtual)
+            ->where('parcelas.status', 'paga')
+            ->whereNull('parcelas.deleted_at')
+            ->whereNull('servicos.deleted_at')
+            ->sum('parcelas.valor_parcela');
 
         $totalRecebidoAno = $recebidoAvistaAno + $recebidoParceladoAno;
 
+/*         $ticketMedio = $servicosDaListagem->count() > 0
+            ? $totalVendidoPeriodo / $servicosDaListagem->count()
+            : 0; */
+
         return [
-            'total_clientes' => Cliente::count(),
+            'total_clientes' => \App\Models\Cliente::count(),
             'total_servicos' => $servicosDaListagem->count(),
             'valor_total' => $totalVendidoPeriodo,
             'valor_mes_atual' => $totalRecebidoPeriodo,
             'valor_ano_atual' => $totalRecebidoAno,
             'total_devedor' => $totalDevedorListagem,
-            'total_pago' => $totalRecebidoPeriodo,
+            'total_devedor_geral' => $totalDevedorGeral,
+            //'ticket_medio' => $ticketMedio,
             'total_pendente' => $totalDevedorListagem,
         ];
     }
@@ -148,7 +165,7 @@ private function calcularInsightsComParcelas($query)
 
         // Aplicar ordenação baseada no parâmetro recebido
         $ordenacao = $request->ordenacao ?? 'data_desc';
-        
+
         switch ($ordenacao) {
             case 'data_asc':
                 $query->orderBy('data_servico', 'ASC');
@@ -218,10 +235,10 @@ private function calcularInsightsComParcelas($query)
         $ordenacaoSelecionada = $ordenacao;
 
         $pdf = Pdf::loadView('servicos.pdf', compact('servicos', 'insights', 'ordenacaoSelecionada'));
-        
+
         // Nome do arquivo com a ordenação
         $nomeArquivo = 'servicos-' . now()->format('d-m-Y') . '-' . $ordenacao . '.pdf';
-        
+
         return $pdf->download($nomeArquivo);
     }
 
@@ -355,7 +372,7 @@ private function calcularInsightsComParcelas($query)
     {
         // Remove pontos (separadores de milhar) e substitui vírgula por ponto
         $valorNumerico = str_replace(['.', ','], ['', '.'], $valorFormatado);
-        
+
         // Converte para float
         return (float) $valorNumerico;
     }
@@ -631,7 +648,7 @@ private function calcularInsightsComParcelas($query)
             return back()->withErrors(['error' => 'Erro ao atualizar serviço: ' . $e->getMessage()])->withInput();
         }
     }
-    
+
     private function processarAnexos(Servico $servico, $anexos, $descricoesAnexos)
     {
         foreach ($anexos as $index => $anexo) {
@@ -836,10 +853,8 @@ private function calcularInsightsComParcelas($query)
                 ]);
             }
             return back()->with('success', 'Status de pagamento atualizado com sucesso!');
-
         } catch (\Exception $e) {
             return back()->with('error', 'Erro ao atualizar status: ' . $e->getMessage());
         }
     }
-
 }

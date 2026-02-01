@@ -4,13 +4,13 @@
 
 @section('content')
 @php
-    $inicioFormatado = \Carbon\Carbon::parse($dataInicio ?? now()->startOfMonth())->format('d/m/Y');
-    $fimFormatado = \Carbon\Carbon::parse($dataFim ?? now()->endOfMonth())->format('d/m/Y');
-    $periodoTexto = "Período: {$inicioFormatado} até {$fimFormatado}";
+$inicioFormatado = \Carbon\Carbon::parse($dataInicio ?? now()->startOfMonth())->format('d/m/Y');
+$fimFormatado = \Carbon\Carbon::parse($dataFim ?? now()->endOfMonth())->format('d/m/Y');
+$periodoTexto = "Período: {$inicioFormatado} até {$fimFormatado}";
 @endphp
 
 <div class="container-fluid">
-    
+
     <div class="row mb-4">
         <div class="col-12">
             <div class="card border-0 shadow-sm rounded-4">
@@ -31,13 +31,13 @@
                             <div class="d-flex gap-2 align-items-end">
                                 <div>
                                     <label class="form-label text-muted small fw-bold mb-1">Início</label>
-                                    <input type="date" class="form-control form-control-sm" name="data_inicial" id="data_inicial" 
-                                           value="{{ $dataInicio ?? now()->startOfMonth()->format('Y-m-d') }}">
+                                    <input type="date" class="form-control form-control-sm" name="data_inicial" id="data_inicial"
+                                        value="{{ $dataInicio ?? now()->startOfMonth()->format('Y-m-d') }}">
                                 </div>
                                 <div>
                                     <label class="form-label text-muted small fw-bold mb-1">Fim</label>
-                                    <input type="date" class="form-control form-control-sm" name="data_final" id="data_final" 
-                                           value="{{ $dataFim ?? now()->endOfMonth()->format('Y-m-d') }}">
+                                    <input type="date" class="form-control form-control-sm" name="data_final" id="data_final"
+                                        value="{{ $dataFim ?? now()->endOfMonth()->format('Y-m-d') }}">
                                 </div>
                                 <button type="submit" class="btn btn-primary btn-sm px-3" title="Filtrar">
                                     <i class="fas fa-filter"></i>
@@ -125,6 +125,20 @@
         </div>
     </div>
 
+    <div class="col-xl col-md-6">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="stat-icon bg-indigo bg-opacity-10 text-indigo rounded-3 p-3" style="background-color: rgba(102, 16, 242, 0.1); color: #6610f2;">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                </div>
+                <h2 class="fw-bold mb-1">{{ $totalBase }}</h2>
+                <p class="text-muted mb-0 small text-uppercase fw-bold ls-1">Clientes</p>
+            </div>
+        </div>
+    </div>
+
     <div class="row g-4 mb-4">
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm rounded-4 h-100">
@@ -189,8 +203,8 @@
 
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card border-0 shadow-sm rounded-4 bg-primary text-white" 
-                 style="background: linear-gradient(45deg, #2563eb, #1d4ed8);">
+            <div class="card border-0 shadow-sm rounded-4 bg-primary text-white"
+                style="background: linear-gradient(45deg, #2563eb, #1d4ed8);">
                 <div class="card-body p-4">
                     <div class="d-flex align-items-center mb-4">
                         <i class="fas fa-lightbulb fa-2x me-3 text-warning"></i>
@@ -276,18 +290,18 @@
                                     </td>
                                     <td class="py-3">
                                         @php
-                                            $statusClass = match($servico['status']) {
-                                                'pago' => 'success',
-                                                'pendente' => 'warning',
-                                                'nao_pago' => 'danger',
-                                                default => 'secondary'
-                                            };
-                                            $statusIcon = match($servico['status']) {
-                                                'pago' => 'check-circle',
-                                                'pendente' => 'clock',
-                                                'nao_pago' => 'times-circle',
-                                                default => 'minus'
-                                            };
+                                        $statusClass = match($servico['status']) {
+                                        'pago' => 'success',
+                                        'pendente' => 'warning',
+                                        'nao_pago' => 'danger',
+                                        default => 'secondary'
+                                        };
+                                        $statusIcon = match($servico['status']) {
+                                        'pago' => 'check-circle',
+                                        'pendente' => 'clock',
+                                        'nao_pago' => 'times-circle',
+                                        default => 'minus'
+                                        };
                                         @endphp
                                         <span class="badge bg-soft-{{ $statusClass }} text-{{ $statusClass }} rounded-pill px-3 py-2">
                                             <i class="fas fa-{{ $statusIcon }} me-1"></i> {{ ucfirst(str_replace('_', ' ', $servico['status'])) }}
@@ -308,17 +322,43 @@
 @push('styles')
 <style>
     /* Estilos Personalizados para modernização */
-    .ls-1 { letter-spacing: 1px; }
-    .cursor-pointer { cursor: pointer; }
-    .bg-soft-primary { background-color: rgba(13, 110, 253, 0.1) !important; }
-    .bg-soft-success { background-color: rgba(25, 135, 84, 0.1) !important; }
-    .bg-soft-warning { background-color: rgba(255, 193, 7, 0.1) !important; }
-    .bg-soft-danger { background-color: rgba(220, 53, 69, 0.1) !important; }
-    .bg-soft-info { background-color: rgba(13, 202, 240, 0.1) !important; }
-    
-    .hover-:hover { background-color: #f8f9fa; transition: 0.3s; }
-    .card { transition: transform 0.2s ease-in-out; }
-    
+    .ls-1 {
+        letter-spacing: 1px;
+    }
+
+    .cursor-pointer {
+        cursor: pointer;
+    }
+
+    .bg-soft-primary {
+        background-color: rgba(13, 110, 253, 0.1) !important;
+    }
+
+    .bg-soft-success {
+        background-color: rgba(25, 135, 84, 0.1) !important;
+    }
+
+    .bg-soft-warning {
+        background-color: rgba(255, 193, 7, 0.1) !important;
+    }
+
+    .bg-soft-danger {
+        background-color: rgba(220, 53, 69, 0.1) !important;
+    }
+
+    .bg-soft-info {
+        background-color: rgba(13, 202, 240, 0.1) !important;
+    }
+
+    .hover-:hover {
+        background-color: #f8f9fa;
+        transition: 0.3s;
+    }
+
+    .card {
+        transition: transform 0.2s ease-in-out;
+    }
+
     /* Input de data customizado */
     input[type="date"] {
         border-radius: 8px;
@@ -332,7 +372,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        
+
         // Pega o texto do período gerado pelo PHP
         const periodoTexto = "{{ $periodoTexto }}";
 
@@ -399,14 +439,18 @@
                     subtitle: {
                         display: true,
                         text: 'Histórico dos últimos 12 meses',
-                        padding: { bottom: 10 }
+                        padding: {
+                            bottom: 10
+                        }
                     },
                     tooltip: {
                         backgroundColor: '#1e293b',
                         padding: 12,
                         callbacks: {
                             label: function(context) {
-                                return 'R$ ' + context.parsed.y.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                                return 'R$ ' + context.parsed.y.toLocaleString('pt-BR', {
+                                    minimumFractionDigits: 2
+                                });
                             }
                         }
                     }
@@ -414,11 +458,18 @@
                 scales: {
                     y: {
                         beginAtZero: true,
-                        grid: { borderDash: [5, 5], color: '#f1f5f9' },
-                        ticks: { callback: (val) => 'R$ ' + val.toLocaleString('pt-BR') }
+                        grid: {
+                            borderDash: [5, 5],
+                            color: '#f1f5f9'
+                        },
+                        ticks: {
+                            callback: (val) => 'R$ ' + val.toLocaleString('pt-BR')
+                        }
                     },
                     x: {
-                        grid: { display: false }
+                        grid: {
+                            display: false
+                        }
                     }
                 }
             }
@@ -442,14 +493,18 @@
                 cutout: '75%',
                 plugins: {
                     ...commonPlugins, // Adiciona o período
-                    legend: { display: false },
+                    legend: {
+                        display: false
+                    },
                     tooltip: {
                         callbacks: {
                             label: function(context) {
                                 let label = context.label || '';
                                 if (label) label += ': ';
                                 let value = context.parsed;
-                                return label + 'R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                                return label + 'R$ ' + value.toLocaleString('pt-BR', {
+                                    minimumFractionDigits: 2
+                                });
                             }
                         }
                     }
@@ -477,10 +532,18 @@
                 plugins: commonPlugins,
                 scales: {
                     x: {
-                        grid: { borderDash: [5, 5] },
-                        ticks: { callback: (val) => 'R$ ' + val.toLocaleString('pt-BR') }
+                        grid: {
+                            borderDash: [5, 5]
+                        },
+                        ticks: {
+                            callback: (val) => 'R$ ' + val.toLocaleString('pt-BR')
+                        }
                     },
-                    y: { grid: { display: false } }
+                    y: {
+                        grid: {
+                            display: false
+                        }
+                    }
                 }
             }
         });
@@ -490,8 +553,7 @@
             type: 'bar',
             data: {
                 labels: @json($dadosRelatorios['graficos']['evolucao_parcelas']['labels']),
-                datasets: [
-                    {
+                datasets: [{
                         label: 'Pagas',
                         data: @json($dadosRelatorios['graficos']['evolucao_parcelas']['pagas']),
                         backgroundColor: colors.success,
@@ -513,9 +575,16 @@
                     y: {
                         beginAtZero: true,
                         stacked: false,
-                        grid: { borderDash: [5, 5] }
+                        grid: {
+                            borderDash: [5, 5]
+                        }
                     },
-                    x: { stacked: false, grid: { display: false } }
+                    x: {
+                        stacked: false,
+                        grid: {
+                            display: false
+                        }
+                    }
                 }
             }
         });
@@ -527,7 +596,7 @@
         let inicio, fim;
         const formatar = (data) => data.toISOString().split('T')[0];
 
-        switch(tipo) {
+        switch (tipo) {
             case 'mes_atual':
                 inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
                 fim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);

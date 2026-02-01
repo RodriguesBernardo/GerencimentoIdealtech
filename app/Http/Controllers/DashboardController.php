@@ -63,12 +63,14 @@ class DashboardController extends Controller
         $dadosRelatorios = $this->getDadosRelatorios($dataInicio, $dataFim);
 
         $periodoLabel = $this->getPeriodoLabel($periodo);
-        
+        $totalBase = \App\Models\Cliente::count();
+
         return view('admin.relatorios.index', compact(
             'dadosRelatorios',
             'periodo',
             'periodoLabel',
-            'dataInicio', 
+            'totalBase',
+            'dataInicio',
             'dataFim'
         ));
     }
@@ -76,7 +78,7 @@ class DashboardController extends Controller
     public function exportarRelatorio(Request $request)
     {
         $tipo = $request->tipo ?? 'pdf';
-        
+
         if ($request->has('data_inicial') && $request->has('data_final')) {
             $dataInicio = $request->data_inicial;
             $dataFim = $request->data_final;
@@ -100,36 +102,36 @@ class DashboardController extends Controller
         switch ($periodo) {
             case 'hoje':
                 return [now()->format('Y-m-d'), now()->format('Y-m-d')];
-            
+
             case '7dias':
                 return [now()->subDays(7)->format('Y-m-d'), now()->format('Y-m-d')];
 
-            case 'mes_anterior': 
+            case 'mes_anterior':
                 return [
-                    now()->subMonth()->startOfMonth()->format('Y-m-d'), 
+                    now()->subMonth()->startOfMonth()->format('Y-m-d'),
                     now()->subMonth()->endOfMonth()->format('Y-m-d')
                 ];
 
             case 'ano_atual':
                 return [
-                    now()->startOfYear()->format('Y-m-d'), 
+                    now()->startOfYear()->format('Y-m-d'),
                     now()->endOfYear()->format('Y-m-d')
                 ];
 
             case 'ano_passado':
                 return [
-                    now()->subYear()->startOfYear()->format('Y-m-d'), 
+                    now()->subYear()->startOfYear()->format('Y-m-d'),
                     now()->subYear()->endOfYear()->format('Y-m-d')
                 ];
 
             case 'mes_atual':
             default:
                 return [
-                    now()->startOfMonth()->format('Y-m-d'), 
+                    now()->startOfMonth()->format('Y-m-d'),
                     now()->endOfMonth()->format('Y-m-d')
                 ];
         }
-    } 
+    }
     /**
      * Clientes que possuem pendências financeiras
      */
