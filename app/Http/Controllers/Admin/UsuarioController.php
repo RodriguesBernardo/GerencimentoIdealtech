@@ -154,6 +154,10 @@ class UsuarioController extends Controller
             'relatorios.view' => 'Visualizar Relatórios',
             'usuarios.view' => 'Visualizar Usuários',
             'usuarios.manage' => 'Gerenciar Usuários',
+            'orcamentos.view' => 'Visualizar Orcamentos',
+            'orcamentos.create' => 'Criar Orcamentos',
+            'orcamentos.edit' => 'Editar Orcamentos',
+            'orcamentos.delete' => 'Deletar Orcamentos',
         ];
     }
 }

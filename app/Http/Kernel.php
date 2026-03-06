@@ -67,3 +67,8 @@ class Kernel extends HttpKernel
         'check.admin' => \App\Http\Middleware\CheckAdmin::class, // ← Use este nome
     ];
 }
+
+protected function schedule(Schedule $schedule): void
+{
+    $schedule->command('orcamentos:verificar-vencidos')->dailyAt('00:05');
+}

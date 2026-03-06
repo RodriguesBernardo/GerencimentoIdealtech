@@ -947,6 +947,16 @@
                     <span class="nav-link-text">Agenda</span>
                 </a>
             </li>
+
+            {{-- Orçamentos -- apenas para usuários com permissão --}}
+            @if(auth()->user()->is_admin || in_array('orcamentos.view', auth()->user()->permissoes ?? []))
+            <li class="nav-item">
+                <a href="{{ route('orcamentos.index') }}" class="nav-link {{ Request::is('orcamentos*') ? 'active' : '' }}">
+                <i class=" fas fa-file-invoice-dollar"></i>
+                <span class="nav-link-text">Orçamentos</span>
+                </a>
+            </li> 
+            @endif
             
             {{-- Seção de Administração - apenas para admin ou usuários com permissões administrativas --}}
             @if(auth()->user()->is_admin || in_array('usuarios.view', auth()->user()->permissoes ?? []) || in_array('relatorios.view', auth()->user()->permissoes ?? []))

@@ -327,6 +327,7 @@ class DashboardController extends Controller
         return [
             'resumo' => $this->getResumoGeral($dataInicio, $dataFim),
             'graficos' => $this->getGraficosProntos($dataInicio, $dataFim),
+            'orcamentos' => $this->getDadosOrcamentosGraficos($dataInicio, $dataFim), 
             'insights' => $this->getInsights($dataInicio, $dataFim),
             'tabelas' => $this->getTabelasPrincipais($dataInicio, $dataFim)
         ];
@@ -725,5 +726,29 @@ class DashboardController extends Controller
             'nao_pago' => 'danger',
             default => 'secondary'
         };
+    }
+
+   private function getDadosOrcamentosGraficos($dataInicio, $dataFim)
+    {
+        $statusOrcamentos = \App\Models\Orcamento::whereBetween('data_emissao', [$dataInicio, $dataFim])
+            ->select('status', DB::raw('count(*) as total'))
+            ->groupBy('status')
+            ->get();
+
+        $total = \App\Models\Orcamento::whereBetween('data_emissao', [$dataInicio, $dataFim])->count();
+        $aprovados = \App\Models\Orcamento::whereBetween('data_emissao', [$dataInicio, $dataFim])
+            ->where('status', 'Aprovado')
+            ->count();
+        
+        $taxaConversao = $total > 0 ? ($aprovados / $total) * 100 : 0;
+
+        return [
+            'status_labels' => $statusOrcamentos->pluck('status'),
+            'status_quantidades' => $statusOrcamentos->pluck('total'),
+            'taxa_conversao' => round($taxaConversao, 1),
+            'total_orcamentos' => $total,
+            'aprovados' => $aprovados,
+            'outros' => $total - $aprovados
+        ];
     }
 }
