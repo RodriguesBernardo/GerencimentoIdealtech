@@ -88,7 +88,7 @@
                 <div class="card-body">
                     
                     <div class="form-check form-switch mb-3 p-3 border rounded">
-                        <input class="form-check-input ms-0 me-2" type="checkbox" name="mostrar_valores_individuais" id="mostrar_valores" value="1" {{ old('mostrar_valores_individuais', true) ? 'checked' : '' }}>
+                        <input class="form-check-input ms-0 me-2" type="checkbox" name="mostrar_valores_individuais" id="mostrar_valores" value="1" {{ old('mostrar_valores_individuais', false) ? 'checked' : '' }}>
                         <label class="form-check-label fw-bold text-primary" for="mostrar_valores">
                             <i class="fas fa-eye"></i> Exibir valores unitários no PDF
                         </label>

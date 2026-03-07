@@ -167,10 +167,10 @@
             @foreach($orcamento->itens as $item)
             <tr>
                 <td class="item-desc">
-                    <strong>• {{ $item->descricao }}</strong>
-                    @if($item->detalhes)
+                    <strong>• {{ $item->descricao }} <small>{!! nl2br(e($item->detalhes)) !!}</small></strong>
+{{--                     @if($item->detalhes)
                         <small>{!! nl2br(e($item->detalhes)) !!}</small>
-                    @endif
+                    @endif --}}
                 </td>
                 <td style="text-align: center;">{{ rtrim(rtrim(number_format($item->quantidade, 2, ',', ''), '0'), ',') }}</td>
                 
