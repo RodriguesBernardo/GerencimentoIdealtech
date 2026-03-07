@@ -185,13 +185,13 @@
     <div class="totals-section">
         @if($orcamento->desconto > 0 || $orcamento->frete_acrescimos > 0)
             <div style="text-align: right; color: #666; font-size: 13px; margin-bottom: 10px;">
-                Subtotal: R$ {{ number_format($orcamento->subtotal, 2, ',', '.') }}<br>
+                {{-- Subtotal: R$ {{ number_format($orcamento->subtotal, 2, ',', '.') }}<br> --}}
                 @if($orcamento->desconto > 0)
                     Desconto: - R$ {{ number_format($orcamento->desconto, 2, ',', '.') }}<br>
                 @endif
-                @if($orcamento->frete_acrescimos > 0)
+{{--                 @if($orcamento->frete_acrescimos > 0)
                     Acréscimos: + R$ {{ number_format($orcamento->frete_acrescimos, 2, ',', '.') }}<br>
-                @endif
+                @endif --}}
             </div>
         @endif
 
