@@ -145,7 +145,7 @@
 
     <div class="doc-title-container">
         <div class="doc-title">
-            Orçamento #{{ str_pad($orcamento->id, 4, '0', STR_PAD_LEFT) }}
+            Orçamento 
         </div>
     </div>
 
@@ -196,14 +196,14 @@
         @endif
 
         <div class="total-highlight" style="text-align: right;">
-            Valor total do orçamento: R$ {{ number_format($orcamento->valor_total, 2, ',', '.') }}
+            Valor total: R$ {{ number_format($orcamento->valor_total, 2, ',', '.') }}
         </div>
 
         <div class="condicoes-box">
             @if($orcamento->condicoes_pagamento)
                 {!! $orcamento->condicoes_pagamento !!}
             @else
-                Consulte outras formas de pagamento
+                Consulte formas de pagamento
             @endif
         </div>
     </div>
