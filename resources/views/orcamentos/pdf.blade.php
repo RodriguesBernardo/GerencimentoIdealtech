@@ -137,7 +137,7 @@
                 Rua General Gomes Carneiro, 436<br>
                 Edifício Marcelo - Sala 02 - Centro<br>
                 idealtech@idealtechcomputadores.com.br<br>
-                Fone: 3055-3655<br>
+                Whatsapp: (54) 99187-7218<br>
                 {{ \Carbon\Carbon::parse($orcamento->data_emissao)->locale('pt-BR')->translatedFormat('l, d \d\e F \d\e Y') }}
             </td>
         </tr>

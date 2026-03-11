@@ -146,6 +146,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'check.admin'])->gro
     Route::get('/logs', [LogController::class, 'index'])->name('logs.index');
     Route::get('/logs/{log}', [LogController::class, 'show'])->name('logs.show');
     Route::get('/logs/export', [LogController::class, 'export'])->name('logs.export');
+
+    Route::prefix('financeiro')->name('financeiro.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\FinanceiroController::class, 'index'])->name('index');
+        Route::post('/analisar-ofx', [App\Http\Controllers\Admin\FinanceiroController::class, 'analisarOfx'])->name('analisar_ofx');
+        Route::post('/salvar-lote', [App\Http\Controllers\Admin\FinanceiroController::class, 'salvarLote'])->name('salvar_lote');
+        Route::delete('/{id}', [App\Http\Controllers\Admin\FinanceiroController::class, 'destroy'])->name('destroy');    });
 });
 
 Schedule::command('orcamentos:verificar-vencidos')->dailyAt('09:00');

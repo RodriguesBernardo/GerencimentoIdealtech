@@ -910,7 +910,7 @@
     <!-- Sidebar -->
     <aside class="app-sidebar">
         <ul class="sidebar-nav">
-            <li class="nav-section">PRINCIPAL</li>
+            <li class="nav-section">VISÃO GERAL</li>
             <li class="nav-item">
                 <a href="{{ route('dashboard') }}" class="nav-link {{ Request::is('dashboard') ? 'active' : '' }}">
                     <i class="fas fa-chart-line"></i>
@@ -978,6 +978,16 @@
                     <a href="{{ route('admin.relatorios.index') }}" class="nav-link {{ Request::is('admin/relatorios*') ? 'active' : '' }}">
                         <i class="fas fa-chart-bar"></i>
                         <span class="nav-link-text">Relatórios</span>
+                    </a>
+                </li>
+                @endif
+
+                {{-- Financeiro - apenas para admin ou usuários com permissão de relatórios --}}
+                @if(auth()->user()->is_admin || in_array('financeiro.view', auth()->user()->permissoes ?? []))
+                <li class="nav-item">
+                    <a href="{{ route('admin.financeiro.index') }}" class="nav-link {{ Request::is('admin/financeiro*') ? 'active' : '' }}">
+                        <i class="fas fa-dollar"></i>
+                        <span class="nav-link-text">Financeiro</span>
                     </a>
                 </li>
                 @endif
