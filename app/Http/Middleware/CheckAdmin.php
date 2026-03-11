@@ -8,32 +8,29 @@ use Symfony\Component\HttpFoundation\Response;
 
 class CheckAdmin
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Request  $request
-     * @param  \Closure  $next
-     * @param  string|null  $permissao  <- Adicionamos este parâmetro
-     */
-    public function handle(Request $request, Closure $next, string $permissao = null): Response
+    public function handle(Request $request, Closure $next, $permissaoExigida = null): Response
     {
-        // 1. Verifica se está logado
-        if (!auth()->check()) {
+        $user = auth()->user();
+
+        if (!$user) {
             return redirect()->route('login');
         }
-
-        $user = auth()->user();
 
         if ($user->is_admin) {
             return $next($request);
         }
 
-        if ($permissao) {
-            $minhasPermissoes = $user->permissoes ?? [];
-            
-            if (in_array($permissao, $minhasPermissoes)) {
-                return $next($request);
-            }
+        $permissoes = $user->permissoes ?? [];
+        if (is_string($permissoes)) {
+            $permissoes = json_decode($permissoes, true) ?? [];
+        }
+
+        if ($permissaoExigida && in_array($permissaoExigida, $permissoes)) {
+            return $next($request);
+        }
+
+        if (!$permissaoExigida && !empty($permissoes)) {
+            return $next($request);
         }
 
         abort(403, 'Acesso não autorizado. Você não tem permissão para esta ação.');

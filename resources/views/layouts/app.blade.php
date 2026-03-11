@@ -959,9 +959,7 @@
             @endif
             
             {{-- Seção de Administração - apenas para admin ou usuários com permissões administrativas --}}
-            @if(auth()->user()->is_admin || in_array('usuarios.view', auth()->user()->permissoes ?? []) || in_array('relatorios.view', auth()->user()->permissoes ?? []))
-            <li class="nav-section">ADMINISTRAÇÃO</li>
-            
+            @if(auth()->user()->is_admin || in_array('usuarios.view', auth()->user()->permissoes ?? []) || in_array('relatorios.view', auth()->user()->permissoes ?? []) || in_array('financeiro.view', auth()->user()->permissoes ?? []))            <li class="nav-section">ADMINISTRAÇÃO</li>          
                 {{-- Usuários - apenas para admin ou usuários com permissão de gerenciar usuários --}}
                 @if(auth()->user()->is_admin || in_array('usuarios.manage', auth()->user()->permissoes ?? []))
                 <li class="nav-item">

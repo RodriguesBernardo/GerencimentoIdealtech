@@ -158,6 +158,7 @@ class UsuarioController extends Controller
             'orcamentos.create' => 'Criar Orcamentos',
             'orcamentos.edit' => 'Editar Orcamentos',
             'orcamentos.delete' => 'Deletar Orcamentos',
+            'financeiro.view' => 'Visualizar Financeiro',
         ];
     }
 }
