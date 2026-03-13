@@ -10,7 +10,6 @@ use App\Http\Controllers\Admin\UsuarioController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Admin\LogController;
 use App\Http\Controllers\OrcamentoController;
-use Illuminate\Support\Facades\Schedule;
 
 // --- Autenticação ---
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
@@ -154,4 +153,3 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'check.admin'])->gro
         Route::delete('/{id}', [App\Http\Controllers\Admin\FinanceiroController::class, 'destroy'])->name('destroy');    });
 });
 
-Schedule::command('orcamentos:verificar-vencidos')->dailyAt('09:00');

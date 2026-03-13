@@ -56,21 +56,32 @@ class ServicoController extends Controller
     private function calcularInsightsComParcelas($query)
     {
         $servicosDaListagem = $query->with('parcelasServico')->get();
-        $totalVendidoPeriodo = $servicosDaListagem->sum('valor');
-
+        
+        $totalVendidoPeriodo = 0;
         $totalDevedorListagem = 0;
+        $totalPagoListagem = 0;
+
         foreach ($servicosDaListagem as $servico) {
+            $totalVendidoPeriodo += $servico->valor; // Valor Total (Vendas)
+
             if ($servico->tipo_pagamento == 'avista') {
                 if (in_array($servico->status_pagamento, ['pendente', 'nao_pago'])) {
                     $totalDevedorListagem += $servico->valor;
+                } elseif ($servico->status_pagamento == 'pago') {
+                    $totalPagoListagem += $servico->valor;
                 }
             } else {
-                $totalDevedorListagem += $servico->parcelasServico
-                    ->whereIn('status', ['pendente', 'nao_paga'])
-                    ->sum('valor_parcela');
+                foreach ($servico->parcelasServico as $parcela) {
+                    if (in_array($parcela->status, ['pendente', 'nao_paga'])) {
+                        $totalDevedorListagem += $parcela->valor_parcela;
+                    } elseif ($parcela->status == 'paga') {
+                        $totalPagoListagem += $parcela->valor_parcela;
+                    }
+                }
             }
         }
 
+        // 3. Cálculos Gerais (Independente do período filtrado)
         $devedorAvistaGeral = \App\Models\Servico::where('tipo_pagamento', 'avista')
             ->whereIn('status_pagamento', ['pendente', 'nao_pago'])
             ->sum('valor');
@@ -83,54 +94,32 @@ class ServicoController extends Controller
             ->sum('parcelas.valor_parcela');
 
         $totalDevedorGeral = $devedorAvistaGeral + $devedorParceladoGeral;
-
         $anoAtual = now()->year;
-        $dataInicioPeriodo = request('data_inicial') ?? now()->startOfMonth()->format('Y-m-d');
-        $dataFimPeriodo = request('data_final') ?? now()->endOfMonth()->format('Y-m-d');
-
-        $recebidoAvistaPeriodo = \App\Models\Servico::whereBetween('data_servico', [$dataInicioPeriodo, $dataFimPeriodo])
-            ->where('tipo_pagamento', 'avista')
-            ->where('status_pagamento', 'pago')
-            ->sum('valor');
-
-        $recebidoParceladoPeriodo = \Illuminate\Support\Facades\DB::table('parcelas')
-            ->join('servicos', 'parcelas.servico_id', '=', 'servicos.id')
-            ->whereBetween('parcelas.data_pagamento', [$dataInicioPeriodo, $dataFimPeriodo])
-            ->where('parcelas.status', 'paga')
-            ->whereNull('parcelas.deleted_at')
-            ->whereNull('servicos.deleted_at')
-            ->sum('parcelas.valor_parcela');
-
-        $totalRecebidoPeriodo = $recebidoAvistaPeriodo + $recebidoParceladoPeriodo;
-
-        $recebidoAvistaAno = \App\Models\Servico::whereYear('data_servico', $anoAtual)
-            ->where('tipo_pagamento', 'avista')
-            ->where('status_pagamento', 'pago')
-            ->sum('valor');
-
-        $recebidoParceladoAno = \Illuminate\Support\Facades\DB::table('parcelas')
-            ->join('servicos', 'parcelas.servico_id', '=', 'servicos.id')
-            ->whereYear('parcelas.data_pagamento', $anoAtual)
-            ->where('parcelas.status', 'paga')
-            ->whereNull('parcelas.deleted_at')
-            ->whereNull('servicos.deleted_at')
-            ->sum('parcelas.valor_parcela');
-
-        $totalRecebidoAno = $recebidoAvistaAno + $recebidoParceladoAno;
-
-/*         $ticketMedio = $servicosDaListagem->count() > 0
-            ? $totalVendidoPeriodo / $servicosDaListagem->count()
-            : 0; */
+        $servicosDoAno = \App\Models\Servico::with('parcelasServico')
+            ->whereYear('data_servico', $anoAtual)
+            ->get();
+            
+        $totalPagoAno = 0;
+        foreach ($servicosDoAno as $servico) {
+            if ($servico->tipo_pagamento == 'avista') {
+                if ($servico->status_pagamento == 'pago') {
+                    $totalPagoAno += $servico->valor;
+                }
+            } else {
+                $totalPagoAno += $servico->parcelasServico
+                    ->where('status', 'paga')
+                    ->sum('valor_parcela');
+            }
+        }
 
         return [
             'total_clientes' => \App\Models\Cliente::count(),
             'total_servicos' => $servicosDaListagem->count(),
-            'valor_total' => $totalVendidoPeriodo,
-            'valor_mes_atual' => $totalRecebidoPeriodo,
-            'valor_ano_atual' => $totalRecebidoAno,
-            'total_devedor' => $totalDevedorListagem,
+            'valor_total' => $totalVendidoPeriodo,       
+            'valor_mes_atual' => $totalPagoListagem,     
+            'valor_ano_atual' => $totalPagoAno,          
+            'total_devedor' => $totalDevedorListagem,    
             'total_devedor_geral' => $totalDevedorGeral,
-            //'ticket_medio' => $ticketMedio,
             'total_pendente' => $totalDevedorListagem,
         ];
     }
